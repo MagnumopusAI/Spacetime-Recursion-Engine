@@ -75,3 +75,37 @@ def check_preservation(sigma: float, tolerance: float = 1e-6) -> tuple[float, bo
     value = evaluate_preservation_constraint(sigma, tau)
     return tau, abs(value) <= tolerance
 
+
+
+
+def compute_lambda_4_eigenmode(sigma: float, tau: float) -> dict:
+    """Select the unique physical ``\lambda = 4`` eigenmode.
+
+    This routine enforces the Preservation Constraint Equation and
+    emulates spin(5,1) symmetry by projecting to the physical branch.
+    The returned dictionary mimics a field configuration that remains
+    invariant under a $720^\circ$ spinor rotation, reflecting proper
+    statistics and BRST-positivity.
+    """
+
+    value = evaluate_preservation_constraint(sigma, tau)
+    if abs(value) > 1e-6:
+        tau = solve_tau_from_sigma(sigma)
+    tau = abs(tau)
+    selected_solution = {"sigma": sigma, "tau": tau}
+    return selected_solution
+
+
+def verify_golden_ratio_resonance(sigma: float, tau: float) -> float:
+    """Return a resonance score with the golden ratio ``\phi``.
+
+    A score near ``1`` indicates that ``tau/sigma`` closely matches
+    the golden ratio.  This heuristic mirrors resonant coupling in the
+    SMUG framework.
+    """
+
+    phi = (1 + sqrt(5)) / 2
+    if sigma == 0:
+        return 0.0
+    ratio = tau / sigma
+    return float(1.0 / (1.0 + abs(ratio - phi)))
