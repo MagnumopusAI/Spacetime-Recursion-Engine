@@ -19,6 +19,13 @@ This repository contains:
 - Preservation Constraint Equation (PCE) solver
 - Quantum coherence validation
 - Multi-scale invariant analysis tools
+## ⚠️ Implementation Status
+
+- ✅ 4D simplified version (current)
+- 🚧 Full 16D spinor implementation (in progress)
+- 🚧 Complete spin(5,1) generators (15 total)
+- ✅ PCE constraint solver
+
 🔹 1. Add a Section: "How to Run"
 Let new users test the engine right away.
 

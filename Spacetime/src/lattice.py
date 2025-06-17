@@ -77,7 +77,7 @@ class SpinorField:
     lattice: HypercubicLattice
 
     def __post_init__(self) -> None:
-        self.psi = np.zeros((*self.lattice.dims, 4), dtype=float)
+        self.psi = np.zeros((*self.lattice.dims, 16), dtype=complex)
 
 
 @dataclass

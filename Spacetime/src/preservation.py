@@ -11,6 +11,7 @@ corresponding ``tau`` value for a given ``sigma``.
 """
 
 from math import sqrt
+import numpy as np
 
 
 def solve_tau_from_sigma(sigma: float) -> float:
@@ -109,3 +110,26 @@ def verify_golden_ratio_resonance(sigma: float, tau: float) -> float:
         return 0.0
     ratio = tau / sigma
     return float(1.0 / (1.0 + abs(ratio - phi)))
+
+
+def compute_sigma_from_spinor(spinor: np.ndarray) -> float:
+    """Return a curvature analogue computed from a 16D spinor."""
+
+    spinor = np.asarray(spinor, dtype=complex).reshape(16, 1)
+    return float((spinor.conj().T @ spinor).real.squeeze())
+
+
+def extract_physical_4d(spinor: np.ndarray, sigma: float, tau: float) -> np.ndarray:
+    """Extract the 4D physical component from a 16D spinor."""
+
+    spinor = np.asarray(spinor, dtype=complex).reshape(16)
+    factor = tau / sigma if sigma != 0 else 0.0
+    return (spinor[:4] * factor).astype(complex)
+
+
+def project_to_physical_subspace(spinor_16d: np.ndarray) -> np.ndarray:
+    """Project 16D virtual spinor to 4D physical observables via PCE."""
+
+    sigma = compute_sigma_from_spinor(spinor_16d)
+    tau = solve_tau_from_sigma(sigma)
+    return extract_physical_4d(spinor_16d, sigma, tau)
