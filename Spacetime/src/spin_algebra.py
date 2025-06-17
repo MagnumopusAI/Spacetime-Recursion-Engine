@@ -6,7 +6,7 @@ from sympy import Matrix, eye, kronecker_product, I
 
 
 class Spin51Algebra:
-    """Construct generators for ``\mathfrak{spin}(5,1)``."""
+    r"""Construct generators for ``\mathfrak{spin}(5,1)``."""
 
     def __init__(self) -> None:
         self.generators = self.construct_clifford_algebra()
@@ -48,7 +48,7 @@ class Spin51Algebra:
         return gamma[i] * gamma[j] - gamma[j] * gamma[i]
 
     def select_physical_eigenmode(self, states: list[dict]) -> dict | None:
-        """Return the state with ``\lambda = 4`` if present."""
+        r"""Return the state with ``\lambda = 4`` if present."""
 
         for st in states:
             if st.get("lambda") == 4:
