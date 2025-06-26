@@ -140,8 +140,11 @@ def extract_physical_4d(spinor: np.ndarray, sigma: float, tau: float) -> np.ndar
 def project_to_physical_subspace(spinor_16d: np.ndarray) -> np.ndarray:
     """Project 16D virtual spinor to 4D physical observables via PCE.
 
-    The Preservation Constraint Equation plays the role of a focusing
-    lens, ensuring that only the physically meaningful components remain.
+    The Preservation Constraint Equation acts like a focusing lens and
+    selects the positive ``tau`` solution.  This projection discards
+    twelve components and therefore has no inverse: uniqueness is
+    guaranteed by the PCE, but information outside the physical sector
+    is lost.
     """
 
     sigma = compute_sigma_from_spinor(spinor_16d)

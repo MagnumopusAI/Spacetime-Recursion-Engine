@@ -37,7 +37,8 @@ cd Spacetime-Recursion-Engine
 
 
 2. Install Python dependencies:
-   
+pip install -r Spacetime/requirements.txt
+
 3. Run the engine:
 python spacetime_recursion_implementation.py
 
