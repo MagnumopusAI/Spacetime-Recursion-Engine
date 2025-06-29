@@ -1,6 +1,6 @@
-numpy
-sympy
-scipy
-matplotlib
-plotly
-kaleido
+numpy>=1.21.0      # Numerical computing foundation
+scipy>=1.7.0       # Scientific algorithms  
+sympy>=1.8         # Symbolic mathematics
+matplotlib>=3.5.0  # Static plotting
+plotly>=5.0.0      # Interactive visualization
+kaleido>=0.2.1     # Static export for plotly
