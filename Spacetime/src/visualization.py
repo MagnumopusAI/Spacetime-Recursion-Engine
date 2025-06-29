@@ -144,3 +144,189 @@ def save_diagram(fig: go.Figure, path: Path) -> Path:
 
     fig.write_image(str(path))
     return path
+
+
+def construct_validation_lattice() -> go.Figure:
+    """Return a diagram of the meta-cognitive validation framework.
+
+    This routine organizes reasoning checks much like nodes on a
+    physical lattice.  The connections mirror how field lines link
+    interacting particles, providing an intuitive view of how each
+    component supports consistent decision making.
+    """
+
+    compute_lambda_4_eigenmode(sigma=0.1, tau=0.2)
+
+    data = {
+        "framework_components": {
+            "main_branches": [
+                "Confidence Assessment",
+                "Pattern vs Discovery Detection",
+                "Reasoning Validation",
+                "Domain Boundary Recognition",
+            ],
+            "confidence_assessment": [
+                "Self-calibration",
+                "Uncertainty quantification",
+                "Fact-level confidence",
+                "Temperature scaling",
+            ],
+            "pattern_detection": [
+                "Spurious correlation detection",
+                "Novelty assessment",
+                "Domain extrapolation flags",
+                "Convex hull analysis",
+            ],
+            "reasoning_validation": [
+                "Logical consistency checks",
+                "Assumption questioning",
+                "Alternative viewpoint consideration",
+                "Chain-of-thought verification",
+            ],
+            "domain_boundary": [
+                "Training distribution bounds",
+                "Extrapolation warnings",
+                "Validity domain mapping",
+                "Out-of-distribution detection",
+            ],
+        }
+    }
+
+    colors = ["#1FB8CD", "#FFC185", "#ECEBD5", "#5D878F"]
+
+    fig = go.Figure()
+
+    root_pos = (0, 8)
+    branch_positions = [(-6, 5), (-2, 5), (2, 5), (6, 5)]
+    sub_positions = [
+        [(-6, 3), (-6, 2), (-6, 1), (-6, 0)],
+        [(-2, 3), (-2, 2), (-2, 1), (-2, 0)],
+        [(2, 3), (2, 2), (2, 1), (2, 0)],
+        [(6, 3), (6, 2), (6, 1), (6, 0)],
+    ]
+
+    fig.add_trace(
+        go.Scatter(
+            x=[root_pos[0]],
+            y=[root_pos[1]],
+            mode="markers+text",
+            marker=dict(size=35, color="#13343B"),
+            text=["Meta-Cognitive<br>Validation<br>Framework"],
+            textposition="middle center",
+            textfont=dict(size=16, color="white"),
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+
+    def abbreviate(text: str) -> str:
+        mapping = {
+            "Confidence Assessment": "Confidence<br>Assessment",
+            "Pattern vs Discovery Detection": "Pattern vs<br>Discovery",
+            "Reasoning Validation": "Reasoning<br>Validation",
+            "Domain Boundary Recognition": "Domain<br>Boundary",
+            "Self-calibration": "Self-<br>Calibration",
+            "Uncertainty quantification": "Uncertainty<br>Quantify",
+            "Fact-level confidence": "Fact-Level<br>Confidence",
+            "Temperature scaling": "Temperature<br>Scaling",
+            "Spurious correlation detection": "Spurious<br>Correlation",
+            "Novelty assessment": "Novelty<br>Assessment",
+            "Domain extrapolation flags": "Domain<br>Extrap Flags",
+            "Convex hull analysis": "Convex Hull<br>Analysis",
+            "Logical consistency checks": "Logic<br>Consistency",
+            "Assumption questioning": "Assumption<br>Questioning",
+            "Alternative viewpoint consideration": "Alternative<br>Viewpoints",
+            "Chain-of-thought verification": "Chain-of-<br>Thought",
+            "Training distribution bounds": "Training<br>Bounds",
+            "Extrapolation warnings": "Extrap<br>Warnings",
+            "Validity domain mapping": "Validity<br>Mapping",
+            "Out-of-distribution detection": "OOD<br>Detection",
+        }
+        return mapping.get(text, text)
+
+    main_branches = data["framework_components"]["main_branches"]
+    sub_components = [
+        data["framework_components"]["confidence_assessment"],
+        data["framework_components"]["pattern_detection"],
+        data["framework_components"]["reasoning_validation"],
+        data["framework_components"]["domain_boundary"],
+    ]
+
+    for i, (branch, pos, color) in enumerate(zip(main_branches, branch_positions, colors)):
+        fig.add_trace(
+            go.Scatter(
+                x=[pos[0]],
+                y=[pos[1]],
+                mode="markers+text",
+                marker=dict(size=30, color=color, line=dict(color="white", width=2)),
+                text=[abbreviate(branch)],
+                textposition="middle center",
+                textfont=dict(size=12, color="black"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=[root_pos[0], pos[0]],
+                y=[root_pos[1], pos[1]],
+                mode="lines",
+                line=dict(color="#13343B", width=3),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+        for sub_comp, sub_pos in zip(sub_components[i], sub_positions[i]):
+            fig.add_trace(
+                go.Scatter(
+                    x=[sub_pos[0]],
+                    y=[sub_pos[1]],
+                    mode="markers+text",
+                    marker=dict(size=20, color=color, line=dict(color="white", width=2)),
+                    text=[abbreviate(sub_comp)],
+                    textposition="middle center",
+                    textfont=dict(size=11, color="black"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[pos[0], sub_pos[0]],
+                    y=[pos[1], sub_pos[1]],
+                    mode="lines",
+                    line=dict(color=color, width=2.5),
+                    showlegend=False,
+                    hoverinfo="skip",
+                )
+            )
+
+    interdependencies = [
+        ((-6, 1.5), (2, 2.5)),
+        ((-2, 2.5), (6, 1.5)),
+    ]
+
+    for start, end in interdependencies:
+        fig.add_trace(
+            go.Scatter(
+                x=[start[0], end[0]],
+                y=[start[1], end[1]],
+                mode="lines",
+                line=dict(color="#B4413C", width=2, dash="dash"),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+    fig.update_layout(
+        title="Meta-Cognitive Validation Framework",
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False, range=[-8, 8]),
+        yaxis=dict(showgrid=False, showticklabels=False, zeroline=False, range=[-1, 9]),
+        plot_bgcolor="white",
+        showlegend=False,
+    )
+
+    return fig
