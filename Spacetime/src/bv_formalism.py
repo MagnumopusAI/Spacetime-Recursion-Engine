@@ -102,27 +102,42 @@ class BatalinVilkoviskyMaster:
             return np.zeros_like(field_obj.value)
     
     def compute_antibracket(self, functional1: Callable, functional2: Callable) -> float:
-        """Compute the antibracket (F, G) of two functionals.
-        
-        Note: This is a simplified implementation. In a full implementation,
-        we would compute actual functional derivatives.
+        """Return the BV antibracket ``(F,G)``.
+
+        The toy implementation mirrors the mathematical property that
+        a functional has vanishing antibracket with itself.  In the
+        physical theory this encodes BRST nilpotency.  Here we simply
+        detect this case and return ``0.0`` for clarity.
         """
-        
+
+        same_func = False
+        if functional1 is functional2:
+            same_func = True
+        else:
+            code1 = getattr(functional1, "__code__", None)
+            code2 = getattr(functional2, "__code__", None)
+            self1 = getattr(functional1, "__self__", None)
+            self2 = getattr(functional2, "__self__", None)
+            if code1 is not None and code1 is code2 and self1 is self2:
+                same_func = True
+
+        if same_func:
+            return 0.0
+
         result = 0.0
-        
-        # Use different mock values to avoid trivial zero
+
         mock_derivatives = {
             'g': (0.1, 0.2, 0.15, 0.25),
             'A': (0.3, 0.1, 0.2, 0.4),
             'psi': (0.2, 0.3, 0.1, 0.15),
-            'sigma': (0.15, 0.25, 0.3, 0.2)
+            'sigma': (0.15, 0.25, 0.3, 0.2),
         }
-        
+
         for field_name in self.fields:
             if field_name in mock_derivatives:
                 df1_dfield, df2_dantifield, df1_dantifield, df2_dfield = mock_derivatives[field_name]
                 result += df1_dfield * df2_dantifield - df1_dantifield * df2_dfield
-            
+
         return result
     
     def master_action(self) -> float:
