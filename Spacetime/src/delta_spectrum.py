@@ -178,10 +178,20 @@ def _lambda4_weight(A: int, B: int, invariants: List[dict]) -> float:
     if not invariants:
         return 1.0
     
-    # Simple heuristic: check if A or B appear in λ=4 contexts
-    search_text = json.dumps(invariants[:5]).lower()
-    if str(A) in search_text or str(B) in search_text:
+    # Simple heuristic: check if A or B appear explicitly in λ=4 contexts
+    # Only count matches where the number appears as a discrete token to avoid
+    # false positives from unrelated digits (e.g. ``42`` should not match ``4``).
+    tokens: list[str] = []
+    for item in invariants[:5]:
+        for val in item.values():
+            if isinstance(val, (int, float)):
+                tokens.append(str(int(val)))
+            elif isinstance(val, str):
+                tokens.extend(val.replace('-', '_').split('_'))
+
+    if str(A) in tokens or str(B) in tokens:
         return 2.0  # Enhanced resonance weight
+
     return 1.0
 
 def _is_prime(n: int) -> bool:

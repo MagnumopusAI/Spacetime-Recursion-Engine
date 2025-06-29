@@ -226,6 +226,7 @@ spacetime_recursion/
 - [Configuration Options](docs/configuration.md)
 - [Performance Optimization](docs/performance.md)
 - [Extending the Engine](docs/extensions.md)
+- [Beal Resonance Explorer](docs/resonance_explorer.html)
 
 ### Research Applications
 - [Quantum Gravity Applications](docs/quantum_gravity.md)
