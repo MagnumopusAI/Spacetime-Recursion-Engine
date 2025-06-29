@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Gauss curvature",
+    "discipline": "Differential Geometry",
+    "form": "K = R_{uv} R^{uv}",
+    "beal_slot": "Δ-spectrum harmonic",
+    "quadratic": true
+  },
+  {
+    "name": "Yang-Mills action",
+    "discipline": "Particle Physics",
+    "form": "S = ∫ F_{μν} F^{μν} d^4x",
+    "beal_slot": "Frey-curve torsion",
+    "quadratic": true
+  },
+  {
+    "name": "Jacobi sum",
+    "discipline": "Number Theory",
+    "form": "J(a,b) = Σ χ_a(x) χ_b(1-x)",
+    "beal_slot": "Jacobi-sum count",
+    "quadratic": false
+  },
+  {
+    "name": "Bianchi identity",
+    "discipline": "General Relativity",
+    "form": "∇_{[α}R_{βγ]δσ}=0",
+    "beal_slot": "Δ-spectrum harmonic",
+    "quadratic": false
+  },
+  {
+    "name": "Chern class c2",
+    "discipline": "Topology",
+    "form": "c2 = (F/2π)^2",
+    "beal_slot": "Frey-curve torsion",
+    "quadratic": true
+  },
+  {
+    "name": "Vorticity invariant",
+    "discipline": "Fluid Dynamics",
+    "form": "ω = ∇ × v",
+    "beal_slot": "Jacobi-sum count",
+    "quadratic": false
+  }
+]
