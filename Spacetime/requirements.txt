@@ -4,3 +4,4 @@ sympy>=1.8         # Symbolic mathematics
 matplotlib>=3.5.0  # Static plotting
 plotly>=5.0.0      # Interactive visualization
 kaleido>=0.2.1     # Static export for plotly
+pandas>=1.3.0     # DataFrame support for exports

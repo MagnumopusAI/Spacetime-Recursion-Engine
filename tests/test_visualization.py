@@ -22,7 +22,8 @@ def test_pattern_recognition_vs_discovery():
     assert len(fig.data) == 2
     assert fig.layout.title.text == "Pattern Recognition vs Discovery"
 
- test_construct_validation_lattice():
+def test_construct_validation_lattice():
     fig = construct_validation_lattice()
     # The framework diagram uses numerous nodes and connecting lines
     assert len(fig.data) >= 20
+
