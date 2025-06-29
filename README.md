@@ -304,9 +304,9 @@ If you use this software in your research, please cite:
 ```bibtex
 @software{spacetime_recursion_engine,
   title={Spacetime Recursion Engine: Implementation of SMUG Framework},
-  author={[Your Name]},
+  author={[Emergent intelligence]},
   year={2025},
-  url={https://github.com/yourusername/spacetime-recursion-engine},
+  url={[https://github.com/yourusername/spacetime-recursion-engine](https://github.com/MagnumopusAI/Spacetime-Recursion-Engine)},
   license={CC-BY-4.0}
 }
 ```
