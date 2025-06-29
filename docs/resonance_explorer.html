@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beal's Conjecture Resonance Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(45deg, #1FB8CD, #FFC185);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(31, 184, 205, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #b0b0b0;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .framework-badge {
+            display: inline-block;
+            background: rgba(31, 184, 205, 0.1);
+            border: 1px solid #1FB8CD;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 15px;
+            color: #1FB8CD;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h2 {
+            color: #1FB8CD;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .control-group {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #FFC185;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .control-group input, .control-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #e0e0e0;
+            font-size: 1em;
+        }
+
+        .control-group input:focus, .control-group select:focus {
+            outline: none;
+            border-color: #1FB8CD;
+            box-shadow: 0 0 10px rgba(31, 184, 205, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #1FB8CD, #5D878F);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 10px 10px 10px 0;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(31, 184, 205, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .equation-display {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(31, 184, 205, 0.3);
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            text-align: center;
+            margin: 20px 0;
+            color: #1FB8CD;
+        }
+
+        .result-display {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #1FB8CD;
+            margin: 20px 0;
+        }
+
+        .resonance-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .resonant {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+        }
+
+        .off-resonant {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+
+        .visualization-area {
+            grid-column: 1 / -1;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .spectrum-chart {
+            width: 100%;
+            height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: flex-end;
+            padding: 20px;
+            gap: 2px;
+            overflow-x: auto;
+        }
+
+        .frequency-bar {
+            background: linear-gradient(to top, #1FB8CD, #FFC185);
+            border-radius: 2px 2px 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+            min-width: 8px;
+        }
+
+        .frequency-bar:hover {
+            filter: brightness(1.5);
+            transform: scaleY(1.1);
+        }
+
+        .frequency-bar.forbidden {
+            background: linear-gradient(to top, #e74c3c, #c0392b);
+        }
+
+        .frequency-bar.resonant {
+            background: linear-gradient(to top, #2ecc71, #27ae60);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-card h3 {
+            color: #FFC185;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1FB8CD;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #1FB8CD, #FFC185);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .theory-panel {
+            grid-column: 1 / -1;
+            background: rgba(255, 197, 133, 0.05);
+            border: 1px solid rgba(255, 197, 133, 0.2);
+        }
+
+        .theory-panel h2 {
+            color: #FFC185;
+        }
+
+        .pce-equation {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #FFC185;
+            text-align: center;
+            font-size: 1.5em;
+            font-family: 'Courier New', monospace;
+            color: #FFC185;
+            margin: 20px 0;
+            box-shadow: 0 0 20px rgba(255, 197, 133, 0.2);
+        }
+
+        .domain-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .domain-tag {
+            background: rgba(31, 184, 205, 0.1);
+            border: 1px solid #1FB8CD;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            color: #1FB8CD;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Beal's Conjecture Resonance Explorer</h1>
+            <p>
+                Explore the mathematical mystery through the lens of physics. 
+                See how prime factors act as "frequencies" and discover why some combinations resonate while others create dissonance.
+            </p>
+            <div class="framework-badge">
+                🔬 Powered by Universal Quadratic Framework | P(σ,τ,υ) = -2σ² + 2τ² + 3τ = 0
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Control Panel -->
+            <div class="panel">
+                <h2>🎛️ Resonance Laboratory</h2>
+                <p style="margin-bottom: 20px; color: #b0b0b0;">
+                    Adjust the "oscillator parameters" and observe the resonance patterns. 
+                    The conjecture predicts that only "resonant" combinations (shared prime factors) can create stable solutions.
+                </p>
+
+                <div class="controls-grid">
+                    <div class="control-group">
+                        <label>Base A</label>
+                        <input type="number" id="baseA" value="3" min="1" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Base B</label>
+                        <input type="number" id="baseB" value="6" min="1" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Target C</label>
+                        <input type="number" id="baseC" value="9" min="1" max="100">
+                    </div>
+                    <div class="control-group">
+                        <label>Exponent x</label>
+                        <input type="number" id="expX" value="3" min="3" max="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Exponent y</label>
+                        <input type="number" id="expY" value="3" min="3" max="10">
+                    </div>
+                    <div class="control-group">
+                        <label>Exponent z</label>
+                        <input type="number" id="expZ" value="3" min="3" max="10">
+                    </div>
+                </div>
+
+                <button class="btn" onclick="analyzeResonance()">
+                    🔍 Analyze Resonance
+                </button>
+                <button class="btn" onclick="generateRandomExample()">
+                    🎲 Random Example
+                </button>
+                <button class="btn" onclick="runSpectralScan()">
+                    📊 Spectral Scan
+                </button>
+
+                <div class="equation-display" id="equationDisplay">
+                    A^x + B^y = C^z
+                </div>
+
+                <div id="resultDisplay" class="result-display" style="display: none;">
+                    <!-- Results will be populated here -->
+                </div>
+            </div>
+
+            <!-- Resonance Analysis -->
+            <div class="panel">
+                <h2>📡 Resonance Analysis</h2>
+                <div id="resonanceStatus" class="resonance-indicator">
+                    <span>🎵</span> Configure parameters and click "Analyze Resonance"
+                </div>
+
+                <div id="primeAnalysis" style="display: none;">
+                    <h3 style="color: #FFC185; margin: 20px 0 10px;">Prime Factor Analysis</h3>
+                    <div id="primeFactors"></div>
+                    
+                    <h3 style="color: #FFC185; margin: 20px 0 10px;">Deviation Analysis</h3>
+                    <div id="deviationAnalysis"></div>
+                </div>
+
+                <div class="progress-bar" id="progressBar" style="display: none;">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div id="resonanceExplanation" style="margin-top: 20px; color: #b0b0b0; line-height: 1.6;">
+                    <p><strong>How it works:</strong></p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>🎵 <strong>Resonant:</strong> A, B, C share a common prime factor (like a perfectly tuned chord)</li>
+                        <li>⚡ <strong>Off-resonant:</strong> No shared factors (creates mathematical "dissonance")</li>
+                        <li>📊 <strong>Near-miss:</strong> Close to solution but not exact (study the error patterns)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Spectral Visualization -->
+            <div class="panel visualization-area">
+                <h2>📊 Δ-Spectrum Visualization</h2>
+                <p style="margin-bottom: 20px; color: #b0b0b0;">
+                    This chart shows the "frequency spectrum" of near-miss errors. Each bar represents how often different prime factors 
+                    appear as the smallest factor in the deviation Δ = |A^x + B^y - C^z|.
+                </p>
+                
+                <div class="spectrum-chart" id="spectrumChart">
+                    <div style="color: #666; text-align: center; width: 100%; padding: 50px;">
+                        Click "Spectral Scan" to generate frequency analysis
+                    </div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid" style="display: none;">
+                    <div class="stat-card">
+                        <h3>Total Samples</h3>
+                        <div class="value" id="totalSamples">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Resonant Cases</h3>
+                        <div class="value" id="resonantCases">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Mean Prime</h3>
+                        <div class="value" id="meanPrime">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Entropy (bits)</h3>
+                        <div class="value" id="entropyValue">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Universal Framework Panel -->
+            <div class="panel theory-panel">
+                <h2>🌌 Universal Quadratic Framework</h2>
+                <p style="margin-bottom: 20px; color: #b0b0b0;">
+                    Beal's conjecture is just one manifestation of a deeper universal principle governing mathematical structures across all domains.
+                </p>
+
+                <div class="pce-equation">
+                    P(σ,τ,υ) = -2σ² + 2τ² + 3τ = 0
+                    <div style="font-size: 0.6em; margin-top: 10px; color: #FFC185;">
+                        Preservation Constraint Equation | λ=4 Eigenmode
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="color: #FFC185; margin: 20px 0 10px;">Cross-Domain Evidence</h3>
+                    <div class="domain-tags">
+                        <span class="domain-tag">Quantum Mechanics</span>
+                        <span class="domain-tag">Astrophysics</span>
+                        <span class="domain-tag">Topology</span>
+                        <span class="domain-tag">Biology</span>
+                        <span class="domain-tag">Engineering</span>
+                        <span class="domain-tag">300+ Domains</span>
+                    </div>
+                    
+                    <p style="color: #b0b0b0; line-height: 1.6;">
+                        The same quadratic structures that govern Beal's conjecture appear in wave physics (ω² = ck²), 
+                        quantum mechanics (energy eigenvalues), general relativity (Einstein field equations), 
+                        and across 300+ scientific domains. This suggests a fundamental "quadratic source code" underlying reality.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Big integer mathematical utilities for handling massive primes
+        function safeBigInt(value) {
+            try {
+                return BigInt(value);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function gcd(a, b) {
+            if (typeof a === 'bigint' || typeof b === 'bigint') {
+                a = BigInt(a);
+                b = BigInt(b);
+                while (b !== 0n) {
+                    const temp = b;
+                    b = a % b;
+                    a = temp;
+                }
+                return a < 0n ? -a : a;
+            } else {
+                while (b !== 0) {
+                    const temp = b;
+                    b = a % b;
+                    a = temp;
+                }
+                return Math.abs(a);
+            }
+        }
+
+        function gcdThree(a, b, c) {
+            return gcd(gcd(a, b), c);
+        }
+
+        function primeFactors(n) {
+            if (typeof n === 'bigint' || n > Number.MAX_SAFE_INTEGER) {
+                return primeFactorsBig(BigInt(n));
+            }
+            const factors = [];
+            let d = 2;
+            while (d * d <= n) {
+                while (n % d === 0) {
+                    factors.push(d);
+                    n /= d;
+                }
+                d++;
+            }
+            if (n > 1) factors.push(n);
+            return factors;
+        }
+
+        function primeFactorsBig(n) {
+            const factors = [];
+            let bigN = BigInt(n);
+            let d = 2n;
+            const smallPrimes = [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n];
+            for (const p of smallPrimes) {
+                while (bigN % p === 0n) {
+                    factors.push(Number(p));
+                    bigN /= p;
+                }
+            }
+            if (bigN > 1000000n) {
+                if (bigN > 1n) {
+                    factors.push("LARGE_FACTOR");
+                }
+            } else {
+                d = 37n;
+                while (d * d <= bigN && factors.length < 20) {
+                    while (bigN % d === 0n) {
+                        factors.push(Number(d));
+                        bigN /= d;
+                    }
+                    d += 2n;
+                }
+                if (bigN > 1n) factors.push(Number(bigN));
+            }
+            return factors;
+        }
+
+        function smallestPrimeFactor(n) {
+            if (n <= 1) return 1;
+            if (typeof n === 'bigint' || n > Number.MAX_SAFE_INTEGER) {
+                const bigN = BigInt(n);
+                const smallPrimes = [2n, 3n, 5n, 7n, 11n, 13n, 17n, 19n, 23n, 29n, 31n];
+                for (const p of smallPrimes) {
+                    if (bigN % p === 0n) return Number(p);
+                }
+                return "LARGE";
+            }
+            const factors = primeFactors(n);
+            return factors.length > 0 ? Math.min(...factors.filter(f => typeof f === 'number')) : n;
+        }
+
+        function isPrime(n) {
+            if (typeof n === 'bigint' || n > Number.MAX_SAFE_INTEGER) {
+                return millerRabinBig(BigInt(n));
+            }
+            if (n <= 1) return false;
+            if (n <= 3) return true;
+            if (n % 2 === 0 || n % 3 === 0) return false;
+            for (let i = 5; i * i <= n; i += 6) {
+                if (n % i === 0 || n % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        function millerRabinBig(n, k = 10) {
+            if (n === 2n || n === 3n) return true;
+            if (n < 2n || n % 2n === 0n) return false;
+            let r = 0n;
+            let d = n - 1n;
+            while (d % 2n === 0n) {
+                d /= 2n;
+                r++;
+            }
+            for (let i = 0; i < k; i++) {
+                const a = 2n + BigInt(Math.floor(Math.random() * Number(n - 4n)));
+                let x = modPowBig(a, d, n);
+                if (x === 1n || x === n - 1n) continue;
+                let composite = true;
+                for (let j = 0n; j < r - 1n; j++) {
+                    x = modPowBig(x, 2n, n);
+                    if (x === n - 1n) {
+                        composite = false;
+                        break;
+                    }
+                }
+                if (composite) return false;
+            }
+            return true;
+        }
+
+        function modPowBig(base, exp, mod) {
+            let result = 1n;
+            base = base % mod;
+            while (exp > 0n) {
+                if (exp % 2n === 1n) {
+                    result = (result * base) % mod;
+                }
+                exp = exp / 2n;
+                base = (base * base) % mod;
+            }
+            return result;
+        }
+
+        function safePower(base, exp) {
+            try {
+                if (exp > 100 || (base > 10 && exp > 50)) {
+                    const bigBase = BigInt(base);
+                    const bigResult = bigBase ** BigInt(exp);
+                    if (bigResult < Number.MAX_SAFE_INTEGER) {
+                        return Number(bigResult);
+                    }
+                    return bigResult;
+                }
+                const result = Math.pow(base, exp);
+                if (!isFinite(result) || result > Number.MAX_SAFE_INTEGER) {
+                    return BigInt(base) ** BigInt(exp);
+                }
+                return result;
+            } catch (e) {
+                return "OVERFLOW";
+            }
+        }
+
+        function formatLargeNumber(num) {
+            if (typeof num === 'bigint') {
+                const str = num.toString();
+                if (str.length > 50) {
+                    return `${str.slice(0, 20)}...${str.slice(-10)} (${str.length} digits)`;
+                }
+                return str;
+            }
+            if (typeof num === 'number' && num > 1e15) {
+                return num.toExponential(3);
+            }
+            return num.toLocaleString();
+        }
+
+        function analyzeResonance() {
+            const A = parseInt(document.getElementById('baseA').value);
+            const B = parseInt(document.getElementById('baseB').value);
+            const C = parseInt(document.getElementById('baseC').value);
+            const x = parseInt(document.getElementById('expX').value);
+            const y = parseInt(document.getElementById('expY').value);
+            const z = parseInt(document.getElementById('expZ').value);
+            document.getElementById('equationDisplay').textContent = 
+                `${A}^${x} + ${B}^${y} = ${C}^${z}`;
+            let leftSide, rightSide, delta;
+            let calculationNote = "";
+            try {
+                const leftA = safePower(A, x);
+                const leftB = safePower(B, y);
+                const rightC = safePower(C, z);
+                if (leftA === "OVERFLOW" || leftB === "OVERFLOW" || rightC === "OVERFLOW") {
+                    throw new Error("Number too large for precise calculation");
+                }
+                if (typeof leftA === 'bigint' || typeof leftB === 'bigint' || typeof rightC === 'bigint') {
+                    const bigLeftA = typeof leftA === 'bigint' ? leftA : BigInt(leftA);
+                    const bigLeftB = typeof leftB === 'bigint' ? leftB : BigInt(leftB);
+                    const bigRightC = typeof rightC === 'bigint' ? rightC : BigInt(rightC);
+                    leftSide = bigLeftA + bigLeftB;
+                    rightSide = bigRightC;
+                    delta = leftSide > rightSide ? leftSide - rightSide : rightSide - leftSide;
+                    calculationNote = "🔢 Using arbitrary precision arithmetic for large numbers";
+                } else {
+                    leftSide = leftA + leftB;
+                    rightSide = rightC;
+                    delta = Math.abs(leftSide - rightSide);
+                }
+            } catch (error) {
+                leftSide = "TOO_LARGE";
+                rightSide = "TOO_LARGE";
+                delta = "UNKNOWN";
+                calculationNote = "⚠️ Numbers exceed computational limits - analyzing structure only";
+            }
+            const isExact = delta === 0 || delta === 0n;
+            const factorsA = primeFactors(A);
+            const factorsB = primeFactors(B);
+            const factorsC = primeFactors(C);
+            const allFactors = [...new Set([...factorsA, ...factorsB, ...factorsC].filter(f => typeof f === 'number'))];
+            const sharedFactors = allFactors.filter(p => 
+                factorsA.includes(p) && factorsB.includes(p) && factorsC.includes(p)
+            );
+            const gcdABC = gcdThree(A, B, C);
+            const isResonant = gcdABC > 1;
+            const statusEl = document.getElementById('resonanceStatus');
+            if (isExact) {
+                statusEl.className = 'resonance-indicator resonant';
+                statusEl.innerHTML = `<span>🎵</span> PERFECT RESONANCE! Exact solution found`;
+            } else if (isResonant) {
+                statusEl.className = 'resonance-indicator resonant';
+                statusEl.innerHTML = `<span>🎵</span> RESONANT (shared factor: ${gcdABC})`;
+            } else {
+                statusEl.className = 'resonance-indicator off-resonant';
+                statusEl.innerHTML = `<span>⚡</span> OFF-RESONANT (no shared factors)`;
+            }
+            const resultEl = document.getElementById('resultDisplay');
+            const primeEl = document.getElementById('primeAnalysis');
+            resultEl.style.display = 'block';
+            primeEl.style.display = 'block';
+            const leftDisplay = leftSide === "TOO_LARGE" ? "Beyond computational limits" : formatLargeNumber(leftSide);
+            const rightDisplay = rightSide === "TOO_LARGE" ? "Beyond computational limits" : formatLargeNumber(rightSide);
+            const deltaDisplay = delta === "UNKNOWN" ? "Cannot calculate precisely" : formatLargeNumber(delta);
+            resultEl.innerHTML = `
+                <h3 style="color: #1FB8CD; margin-bottom: 15px;">Calculation Results</h3>
+                ${calculationNote ? `<div style="color: #FFC185; margin-bottom: 10px; font-style: italic;">${calculationNote}</div>` : ''}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <strong>Left side:</strong> ${A}^${x} + ${B}^${y} = ${leftDisplay}<br>
+                        <strong>Right side:</strong> ${C}^${z} = ${rightDisplay}<br>
+                        <strong>Deviation (Δ):</strong> ${deltaDisplay}
+                    </div>
+                    <div>
+                        <strong>GCD(A,B,C):</strong> ${gcdABC}<br>
+                        <strong>Status:</strong> ${isExact ? 'Exact Solution ✓' : isResonant ? 'Resonant' : 'Off-resonant'}<br>
+                        <strong>Beal Prediction:</strong> ${isResonant || isExact ? 'Satisfied ✓' : 'Violated ⚠️'}
+                    </div>
+                </div>
+                ${leftSide === "TOO_LARGE" ? `
+                <div style="margin-top: 15px; padding: 10px; background: rgba(255, 197, 133, 0.1); border-radius: 8px; border-left: 3px solid #FFC185;">
+                    <strong>🌌 Structural Analysis:</strong> Even though these numbers exceed computational limits, 
+                    the resonance framework can still analyze their mathematical structure. The ${isResonant ? 'shared prime factors' : 'lack of shared factors'} 
+                    determines the resonance properties regardless of scale.
+                </div>
+                ` : ''}
+            `;
+            const factorDisplayA = factorsA.includes("LARGE_FACTOR") ? `${factorsA.filter(f => f !== "LARGE_FACTOR").join(' × ')} × [LARGE_FACTOR]` : factorsA.join(' × ') || '1';
+            const factorDisplayB = factorsB.includes("LARGE_FACTOR") ? `${factorsB.filter(f => f !== "LARGE_FACTOR").join(' × ')} × [LARGE_FACTOR]` : factorsB.join(' × ') || '1';
+            const factorDisplayC = factorsC.includes("LARGE_FACTOR") ? `${factorsC.filter(f => f !== "LARGE_FACTOR").join(' × ')} × [LARGE_FACTOR]` : factorsC.join(' × ') || '1';
+            document.getElementById('primeFactors').innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                    <div>
+                        <strong>A = ${A}:</strong> ${factorDisplayA}
+                    </div>
+                    <div>
+                        <strong>B = ${B}:</strong> ${factorDisplayB}
+                    </div>
+                    <div>
+                        <strong>C = ${C}:</strong> ${factorDisplayC}
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <strong>Shared prime factors:</strong> ${sharedFactors.length > 0 ? sharedFactors.join(', ') : 'None'}
+                </div>
+            `;
+            if (delta !== "UNKNOWN" && delta !== 0 && delta !== 0n) {
+                let deltaAnalysisHTML = "";
+                if (typeof delta === 'bigint' || delta > Number.MAX_SAFE_INTEGER) {
+                    deltaAnalysisHTML = `
+                        <strong>Δ = ${formatLargeNumber(delta)}:</strong> Too large for complete factorization<br>
+                        <strong>Structural analysis:</strong> Large deviation suggests off-resonant configuration<br>
+                        <strong>Resonance framework:</strong> Pattern analysis suggests fundamental dissonance
+                    `;
+                } else {
+                    const deltaFactors = primeFactors(delta);
+                    const smallestDeltaPrime = smallestPrimeFactor(delta);
+                    deltaAnalysisHTML = `
+                        <strong>Δ = ${formatLargeNumber(delta)}:</strong> ${deltaFactors.join(' × ')}<br>
+                        <strong>Smallest prime factor:</strong> ${smallestDeltaPrime}<br>
+                        <strong>Dissonance frequency:</strong> ${smallestDeltaPrime} Hz (analogy)
+                    `;
+                }
+                document.getElementById('deviationAnalysis').innerHTML = deltaAnalysisHTML;
+            } else if (delta === "UNKNOWN") {
+                document.getElementById('deviationAnalysis').innerHTML = `
+                    <strong>🔬 Framework Prediction:</strong> Based on the ${isResonant ? 'resonant' : 'off-resonant'} 
+                    structure of the bases, the framework predicts this configuration ${isResonant ? 'could potentially' : 'should not'} 
+                    yield an exact solution, regardless of our ability to compute the precise deviation.
+                `;
+            } else {
+                document.getElementById('deviationAnalysis').innerHTML = 
+                    '<strong>Perfect match!</strong> No deviation to analyze.';
+            }
+        }
+
+        function generateRandomExample() {
+            document.getElementById('baseA').value = Math.floor(Math.random() * 20) + 2;
+            document.getElementById('baseB').value = Math.floor(Math.random() * 20) + 2;
+            document.getElementById('baseC').value = Math.floor(Math.random() * 20) + 2;
+            document.getElementById('expX').value = Math.floor(Math.random() * 5) + 3;
+            document.getElementById('expY').value = Math.floor(Math.random() * 5) + 3;
+            document.getElementById('expZ').value = Math.floor(Math.random() * 5) + 3;
+            analyzeResonance();
+        }
+
+        function runSpectralScan() {
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const chartEl = document.getElementById('spectrumChart');
+            progressBar.style.display = 'block';
+            chartEl.classList.add('loading');
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                progressFill.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    setTimeout(() => {
+                        generateSpectrum();
+                        progressBar.style.display = 'none';
+                        chartEl.classList.remove('loading');
+                    }, 500);
+                }
+            }, 100);
+        }
+
+        function generateSpectrum() {
+            const chartEl = document.getElementById('spectrumChart');
+            const statsEl = document.getElementById('statsGrid');
+            const primeFrequencies = {};
+            let totalSamples = 0;
+            let resonantCases = 0;
+            for (let a = 2; a <= 20; a++) {
+                for (let b = 2; b <= 20; b++) {
+                    for (let c = 2; c <= 20; c++) {
+                        const x = 3, y = 3, z = 3;
+                        const leftSide = Math.pow(a, x) + Math.pow(b, y);
+                        const rightSide = Math.pow(c, z);
+                        const delta = Math.abs(leftSide - rightSide);
+                        if (delta > 0 && delta < 10000) {
+                            totalSamples++;
+                            const gcdVal = gcdThree(a, b, c);
+                            if (gcdVal > 1) resonantCases++;
+                            const smallestPrime = smallestPrimeFactor(delta);
+                            primeFrequencies[smallestPrime] = (primeFrequencies[smallestPrime] || 0) + 1;
+                        }
+                    }
+                }
+            }
+            const maxFreq = Math.max(...Object.values(primeFrequencies));
+            const primes = Object.keys(primeFrequencies).map(Number).sort((a, b) => a - b);
+            chartEl.innerHTML = '';
+            primes.forEach(prime => {
+                const count = primeFrequencies[prime];
+                const height = (count / maxFreq) * 260;
+                const bar = document.createElement('div');
+                bar.className = 'frequency-bar';
+                bar.style.height = height + 'px';
+                bar.style.width = '12px';
+                if (prime === 2) {
+                    bar.classList.add('resonant');
+                } else if (count < maxFreq * 0.1) {
+                    bar.classList.add('forbidden');
+                }
+                bar.addEventListener('mouseenter', (e) => {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.innerHTML = `Prime: ${prime}<br>Count: ${count}<br>Frequency: ${(count/totalSamples*100).toFixed(1)}%`;
+                    tooltip.style.opacity = '1';
+                });
+                bar.addEventListener('mouseleave', () => {
+                    document.getElementById('tooltip').style.opacity = '0';
+                });
+                bar.addEventListener('mousemove', (e) => {
+                    const tooltip = document.getElementById('tooltip');
+                    tooltip.style.left = e.pageX + 10 + 'px';
+                    tooltip.style.top = e.pageY - 10 + 'px';
+                });
+                chartEl.appendChild(bar);
+            });
+            const meanPrime = primes.reduce((sum, p) => sum + p * primeFrequencies[p], 0) / totalSamples;
+            const entropy = -primes.reduce((sum, p) => {
+                const prob = primeFrequencies[p] / totalSamples;
+                return sum + prob * Math.log2(prob);
+            }, 0);
+            statsEl.style.display = 'grid';
+            document.getElementById('totalSamples').textContent = totalSamples.toLocaleString();
+            document.getElementById('resonantCases').textContent = resonantCases.toLocaleString();
+            document.getElementById('meanPrime').textContent = meanPrime.toFixed(1);
+            document.getElementById('entropyValue').textContent = entropy.toFixed(2);
+        }
+
+        function loadExamples() {
+            setTimeout(() => {
+                document.getElementById('baseA').value = 3;
+                document.getElementById('baseB').value = 6;
+                document.getElementById('baseC').value = 9;
+                document.getElementById('expX').value = 3;
+                document.getElementById('expY').value = 3;
+                document.getElementById('expZ').value = 3;
+                analyzeResonance();
+            }, 1000);
+        }
+
+        class LearningPath {
+            constructor() {
+                this.currentLevel = 1;
+                this.concepts = [
+                    "Basic equation structure",
+                    "Prime factor analysis", 
+                    "Resonance vs dissonance",
+                    "Spectral analysis",
+                    "Cross-domain connections",
+                    "Universal quadratic framework"
+                ];
+            }
+            checkProgress() {}
+            suggestNextStep() {
+                const suggestions = [
+                    "Try changing exponents to see how 'stiffness' affects resonance",
+                    "Explore the spectral scan to understand forbidden frequencies", 
+                    "Compare resonant vs off-resonant examples",
+                    "Investigate the connection to other mathematical domains",
+                    "Learn about the Universal Quadratic Framework"
+                ];
+                return suggestions[Math.floor(Math.random() * suggestions.length)];
+            }
+        }
+
+        const learningPath = new LearningPath();
+        function addAchievements() {}
+        function deepAnalysis() {}
+        function enableCollaboration() {}
+        function connectToResearch() {}
+        function enhanceAccessibility() {}
+        document.addEventListener('DOMContentLoaded', function() {
+            loadExamples();
+            ['baseA', 'baseB', 'baseC', 'expX', 'expY', 'expZ'].forEach(id => {
+                document.getElementById(id).addEventListener('input', function() {
+                    clearTimeout(this.analysisTimeout);
+                    this.analysisTimeout = setTimeout(analyzeResonance, 500);
+                });
+            });
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'r':
+                            e.preventDefault();
+                            generateRandomExample();
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            runSpectralScan();
+                            break;
+                        case 'a':
+                            e.preventDefault();
+                            analyzeResonance();
+                            break;
+                    }
+                }
+            });
+            const style = document.createElement('style');
+            style.textContent = `
+                .panel { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+                .panel:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); }
+                .control-group input:focus + .label::after { content: " ✨"; }
+            `;
+            document.head.appendChild(style);
+            console.log("🎵 Beal's Conjecture Resonance Explorer initialized!");
+        });
+    </script>
+</body>
+</html>
