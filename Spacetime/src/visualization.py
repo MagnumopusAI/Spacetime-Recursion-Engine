@@ -14,6 +14,7 @@ from typing import Iterable, List, Optional
 
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from .preservation import compute_lambda_4_eigenmode
 
@@ -144,3 +145,80 @@ def save_diagram(fig: go.Figure, path: Path) -> Path:
 
     fig.write_image(str(path))
     return path
+
+
+def pattern_recognition_vs_discovery() -> go.Figure:
+    """Return a chart contrasting reactive recognition with proactive discovery.
+
+    This visualization juxtaposes two learning modes like comparing
+    reflexive muscle memory to deliberate exploration. Each column lists
+    qualitative traits that either interpolate within known patterns or
+    extrapolate toward novel structure.
+
+    Returns
+    -------
+    go.Figure
+        Bar chart summarizing pattern recognition and genuine discovery.
+    """
+
+    pr_chars = [
+        "Interpolates",
+        "Matches templ",
+        "High confid",
+        "Fails novelty",
+        "Overfits corr",
+        "Reactive",
+    ]
+
+    gd_chars = [
+        "Extrapolates",
+        "Creates framew",
+        "Approp uncert",
+        "Handles compl",
+        "Ident causal",
+        "Proactive",
+    ]
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=("Pattern Recog", "Genuine Disc"),
+        horizontal_spacing=0.15,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            y=list(range(len(pr_chars))),
+            x=[1] * len(pr_chars),
+            orientation="h",
+            marker_color="#B4413C",
+            text=pr_chars,
+            textposition="inside",
+            textfont=dict(color="white", size=10),
+            showlegend=False,
+            cliponaxis=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            y=list(range(len(gd_chars))),
+            x=[1] * len(gd_chars),
+            orientation="h",
+            marker_color="#1FB8CD",
+            text=gd_chars,
+            textposition="inside",
+            textfont=dict(color="white", size=10),
+            showlegend=False,
+            cliponaxis=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.update_layout(title="Pattern Recognition vs Discovery", showlegend=False)
+    fig.update_xaxes(showticklabels=False, showgrid=False, zeroline=False)
+    fig.update_yaxes(showticklabels=False, showgrid=False, zeroline=False)
+    return fig
