@@ -1,4 +1,4 @@
-"""Preservation Constraint utilities.
+r"""Preservation Constraint utilities.
 
 The Preservation Constraint Equation (PCE) is defined as::
 
@@ -11,6 +11,7 @@ corresponding ``tau`` value for a given ``sigma``.
 """
 
 from math import sqrt
+import numpy as np
 
 
 def solve_tau_from_sigma(sigma: float) -> float:
@@ -79,7 +80,7 @@ def check_preservation(sigma: float, tolerance: float = 1e-6) -> tuple[float, bo
 
 
 def compute_lambda_4_eigenmode(sigma: float, tau: float) -> dict:
-    """Select the unique physical ``\lambda = 4`` eigenmode.
+    r"""Select the unique physical ``\lambda = 4`` eigenmode.
 
     This routine enforces the Preservation Constraint Equation and
     emulates spin(5,1) symmetry by projecting to the physical branch.
@@ -97,7 +98,7 @@ def compute_lambda_4_eigenmode(sigma: float, tau: float) -> dict:
 
 
 def verify_golden_ratio_resonance(sigma: float, tau: float) -> float:
-    """Return a resonance score with the golden ratio ``\phi``.
+    r"""Return a resonance score with the golden ratio ``\phi``.
 
     A score near ``1`` indicates that ``tau/sigma`` closely matches
     the golden ratio.  This heuristic mirrors resonant coupling in the
@@ -109,3 +110,43 @@ def verify_golden_ratio_resonance(sigma: float, tau: float) -> float:
         return 0.0
     ratio = tau / sigma
     return float(1.0 / (1.0 + abs(ratio - phi)))
+
+
+def compute_sigma_from_spinor(spinor: np.ndarray) -> float:
+    """Return a curvature analogue computed from a 16D spinor.
+
+    This mirrors measuring the ``size`` of a high-dimensional vector much
+    like computing a radius from a collection of coordinates in everyday
+    geometry.
+    """
+
+    spinor = np.asarray(spinor, dtype=complex).reshape(16, 1)
+    return float((spinor.conj().T @ spinor).real.squeeze())
+
+
+def extract_physical_4d(spinor: np.ndarray, sigma: float, tau: float) -> np.ndarray:
+    """Extract the 4D physical component from a 16D spinor.
+
+    Conceptually this is like taking a photograph of a 3D object: the
+    high-dimensional details collapse to a lower-dimensional image that we
+    can interpret.
+    """
+
+    spinor = np.asarray(spinor, dtype=complex).reshape(16)
+    factor = tau / sigma if sigma != 0 else 0.0
+    return (spinor[:4] * factor).astype(complex)
+
+
+def project_to_physical_subspace(spinor_16d: np.ndarray) -> np.ndarray:
+    """Project 16D virtual spinor to 4D physical observables via PCE.
+
+    The Preservation Constraint Equation acts like a focusing lens and
+    selects the positive ``tau`` solution.  This projection discards
+    twelve components and therefore has no inverse: uniqueness is
+    guaranteed by the PCE, but information outside the physical sector
+    is lost.
+    """
+
+    sigma = compute_sigma_from_spinor(spinor_16d)
+    tau = solve_tau_from_sigma(sigma)
+    return extract_physical_4d(spinor_16d, sigma, tau)

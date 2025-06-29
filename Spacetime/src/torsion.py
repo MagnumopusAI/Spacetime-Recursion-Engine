@@ -52,22 +52,31 @@ class TorsionField:
     kappa: float = 1.0
 
     def _gamma_matrices(self) -> list[np.ndarray]:
-        """Return Dirac gamma matrices in the Dirac representation."""
+        """Return 16×16 gamma matrices for ``Cl(3,1)``.
+
+        The matrices are constructed as Kronecker products of the
+        canonical 4×4 Dirac matrices with a 4×4 identity.  This yields a
+        block-diagonal representation that acts on a 16-component spinor
+        without altering the usual Dirac algebra.  The approach mirrors
+        splitting the virtual 16D space into four identical Dirac
+        subspaces."""
 
         g0 = np.diag([1, 1, -1, -1])
-        g1 = np.array([[0, 0, 0, 1],
-                       [0, 0, 1, 0],
-                       [0, -1, 0, 0],
-                       [-1, 0, 0, 0]], dtype=complex)
-        g2 = np.array([[0, 0, 0, -1j],
-                       [0, 0, 1j, 0],
-                       [0, 1j, 0, 0],
-                       [-1j, 0, 0, 0]], dtype=complex)
-        g3 = np.array([[0, 0, 1, 0],
-                       [0, 0, 0, -1],
-                       [-1, 0, 0, 0],
-                       [0, 1, 0, 0]], dtype=complex)
-        return [g0, g1, g2, g3]
+        g1 = np.array(
+            [[0, 0, 0, 1], [0, 0, 1, 0], [0, -1, 0, 0], [-1, 0, 0, 0]],
+            dtype=complex,
+        )
+        g2 = np.array(
+            [[0, 0, 0, -1j], [0, 0, 1j, 0], [0, 1j, 0, 0], [-1j, 0, 0, 0]],
+            dtype=complex,
+        )
+        g3 = np.array(
+            [[0, 0, 1, 0], [0, 0, 0, -1], [-1, 0, 0, 0], [0, 1, 0, 0]],
+            dtype=complex,
+        )
+
+        base = [g0, g1, g2, g3]
+        return [np.kron(np.eye(4), g) for g in base]
 
     def _gamma5(self) -> np.ndarray:
         g0, g1, g2, g3 = self._gamma_matrices()
@@ -95,7 +104,7 @@ class TorsionField:
         Parameters
         ----------
         psi:
-            Four-component spinor array.
+            Sixteen-component spinor array.
 
         Returns
         -------
@@ -103,8 +112,9 @@ class TorsionField:
             A ``4×4×4`` torsion tensor.
         """
 
-        psi = np.asarray(psi, dtype=complex).reshape(4, 1)
-        g = np.diag([1, -1, -1, -1])
+        psi = np.asarray(psi, dtype=complex).reshape(16, 1)
+        g_small = np.diag([1, -1, -1, -1])
+        g = g_small
 
         gamma = self._gamma_matrices()
         gamma5 = self._gamma5()

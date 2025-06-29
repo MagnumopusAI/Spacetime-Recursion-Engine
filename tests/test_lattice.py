@@ -29,7 +29,7 @@ def test_field_initialization():
     gauge = GaugeField(lattice)
     spinor = SpinorField(lattice)
     assert gauge.links.shape == (2, 2, 2, 2, 4, 3, 3)
-    assert spinor.psi.shape == (2, 2, 2, 2, 4)
+    assert spinor.psi.shape == (2, 2, 2, 2, 16)
 
 
 def test_pce_enforcement():
