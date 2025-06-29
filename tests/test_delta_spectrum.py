@@ -1,13 +1,16 @@
 """
 Unified test suite for Δ-Spectrum analysis module.
 
-This test suite combines comprehensive coverage from both branches,
-ensuring the unified module works correctly across all use cases.
+This comprehensive test suite combines all approaches and ensures the final
+unified module works correctly across all use cases, from simple exploration
+to production-scale analysis. Includes regression protection to maintain
+the integrity of Beal's conjecture validation.
 """
 
 import sys
 import tempfile
 import json
+import math
 from pathlib import Path
 import pytest
 
@@ -28,23 +31,25 @@ from src.delta_spectrum import (
 
 
 class TestOptimizedPrimeCache:
-    """Test the prime factor caching system."""
+    """Test the prime factor caching system with performance monitoring."""
     
     def test_smallest_prime_factor_basic(self):
         """Test basic prime factor computation."""
         cache = OptimizedPrimeCache()
         
-        # Test known values
+        # Test known values from both branches
         assert cache.smallest_prime_factor(1) == 1
         assert cache.smallest_prime_factor(2) == 2
         assert cache.smallest_prime_factor(4) == 2
+        assert cache.smallest_prime_factor(7) == 7  # prime
+        assert cache.smallest_prime_factor(8) == 2
         assert cache.smallest_prime_factor(15) == 3
         assert cache.smallest_prime_factor(17) == 17  # prime
         assert cache.smallest_prime_factor(21) == 3
         assert cache.smallest_prime_factor(100) == 2
     
-    def test_cache_functionality(self):
-        """Test that caching works correctly."""
+    def test_cache_functionality_and_efficiency(self):
+        """Test that caching works correctly with efficiency monitoring."""
         cache = OptimizedPrimeCache()
         
         # First call - cache miss
@@ -58,6 +63,9 @@ class TestOptimizedPrimeCache:
         assert result1 == result2 == 3
         assert hit_count_2 > 0  # Should have registered a hit
         assert cache.cache_efficiency > 0
+        
+        # Verify caching occurred
+        assert 15 in cache.cache
     
     def test_edge_cases(self):
         """Test edge cases for prime factor computation."""
@@ -117,7 +125,7 @@ class TestHelperFunctions:
 
 
 class TestNearMiss:
-    """Test the NearMiss dataclass."""
+    """Test the NearMiss dataclass and its properties."""
     
     def test_near_miss_creation(self):
         """Test basic NearMiss creation and properties."""
@@ -163,7 +171,7 @@ class TestNearMiss:
 
 
 class TestProductionDeltaAnalyzer:
-    """Test the main analyzer class."""
+    """Test the main analyzer class with comprehensive coverage."""
     
     def test_initialization_no_invariants(self):
         """Test analyzer initialization without invariants."""
@@ -212,7 +220,7 @@ class TestProductionDeltaAnalyzer:
         assert all(r.x == 3 and r.y == 3 and r.z == 3 for r in results)
     
     def test_search_near_misses_with_constraints(self):
-        """Test search with various constraints."""
+        """Test search with various constraints from both branches."""
         analyzer = ProductionDeltaAnalyzer()
         
         # Test with max_delta constraint
@@ -225,6 +233,17 @@ class TestProductionDeltaAnalyzer:
         
         # All deltas should be within constraint
         assert all(r.delta <= 1000 for r in results_constrained)
+        
+        # Test basic constraints from simplified branch
+        results_basic = analyzer.search_near_misses(
+            limit=5, 
+            coprime_only=True, 
+            max_delta=1000
+        )
+        
+        assert results_basic
+        # Verify that all deltas are positive
+        assert all(m.delta > 0 for m in results_basic)
     
     def test_analyze_spectrum_basic(self):
         """Test spectrum analysis functionality."""
@@ -259,6 +278,18 @@ class TestProductionDeltaAnalyzer:
         analyzer = ProductionDeltaAnalyzer()
         analysis = analyzer.analyze_spectrum()
         assert analysis == {}
+    
+    def test_entropy_and_prime_detection_integration(self):
+        """Test entropy calculation and prime detection from simplified branch."""
+        analyzer = ProductionDeltaAnalyzer()
+        
+        # Test entropy calculation directly
+        entropy = analyzer._calculate_entropy([3, 1])
+        assert entropy > 0
+        
+        # Test prime detection integration with _is_prime
+        assert _is_prime(7)
+        assert not _is_prime(9)
     
     def test_forbidden_bands_detection(self):
         """Test forbidden band detection."""
@@ -405,6 +436,67 @@ class TestRegressionProtection:
         
         for nm in analyzer.near_misses:
             assert nm.delta > 0, f"Non-positive delta found: {nm.delta}"
+    
+    def test_cache_integration(self):
+        """Regression: verify cache integration works correctly."""
+        cache = OptimizedPrimeCache()
+        
+        # Test specific values from simplified branch
+        assert cache.smallest_prime_factor(7) == 7
+        assert cache.smallest_prime_factor(8) == 2
+        assert cache.smallest_prime_factor(0) == 0
+        
+        # Value should now be cached
+        assert 8 in cache.cache
+        assert 7 in cache.cache
+
+
+class TestBranchSpecificFeatures:
+    """Test features specific to each branch that should be preserved."""
+    
+    def test_simplified_branch_compatibility(self):
+        """Ensure simplified branch functionality is preserved."""
+        # Test the DeltaSpectrumAnalyzer equivalent functionality
+        analyzer = ProductionDeltaAnalyzer()
+        
+        # Mimic simplified branch test
+        misses = analyzer.search_near_misses(
+            limit=5, 
+            coprime_only=True, 
+            max_delta=1000,
+            progress=False
+        )
+        
+        assert misses
+        # Verify that all deltas are positive
+        assert all(m.delta > 0 for m in misses)
+        
+        # Test entropy calculation
+        if misses:
+            analysis = analyzer.analyze_spectrum()
+            assert analysis['prime_entropy'] >= 0
+    
+    def test_production_branch_enhancements(self):
+        """Ensure production branch enhancements are preserved."""
+        analyzer = ProductionDeltaAnalyzer()
+        
+        # Test comprehensive analysis features
+        analyzer.search_near_misses(
+            x=3, y=5, z=7,
+            limit=12,
+            progress=False
+        )
+        
+        analysis = analyzer.analyze_spectrum()
+        
+        # Check for advanced features
+        assert 'forbidden_bands' in analysis
+        assert 'resonance_peaks' in analysis
+        assert 'cache_efficiency' in analysis
+        assert 'mode_distribution' in analysis
+        
+        # Test cache efficiency tracking
+        assert analyzer.prime_cache.cache_efficiency >= 0
 
 
 # Performance markers for optional slow tests
