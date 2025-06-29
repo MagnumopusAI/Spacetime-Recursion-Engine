@@ -35,6 +35,29 @@ def abbreviate(text: str) -> str:
     }
     return mapping.get(text, text)
 
+def build_eigenmode_filter_diagram(eigenvalues, selected_mode):
+    """Return a simple bar diagram highlighting the selected eigenmode."""
+    fig = go.Figure()
+    fig.add_bar(x=list(range(len(eigenvalues))), y=eigenvalues, name="modes")
+    fig.add_bar(x=[selected_mode], y=[eigenvalues[selected_mode-1]], name="selected",
+                marker_color="#B4413C")
+    fig.update_layout(title="Eigenmode Filter", barmode="overlay")
+    return fig
+
+
+def pattern_recognition_vs_discovery():
+    """Compare pattern recognition and discovery approaches."""
+    fig = go.Figure()
+    fig.add_bar(x=["Pattern Recognition"], y=[1], name="Recognition")
+    fig.add_bar(x=["Discovery"], y=[1], name="Discovery")
+    fig.update_layout(title="Pattern Recognition vs Discovery")
+    return fig
+
+
+def construct_validation_lattice():
+    """Wrapper returning the meta-cognitive validation diagram."""
+    return build_meta_cognitive_validation_figure()
+
 def build_meta_cognitive_validation_figure():
     compute_lambda_4_eigenmode(sigma=0.1, tau=0.2)
 
@@ -74,13 +97,13 @@ def build_meta_cognitive_validation_figure():
     }
 
     # Color codes for the main branches
-    colors = ["#1FB8CD", "#FFC185",ECEBD5", "#5D878F"]
+    colors = ["#1FB8CD", "#FFC185", "#ECEBD5", "#5D878F"]
 
     fig = go.Figure()
 
     # Position definition
     root_pos = (0, 8)
-    branch_positions [(-6, 5), (-2, 5), (2, 5), (6, 5)]
+    branch_positions = [(-6, 5), (-2, 5), (2, 5), (6, 5)]
     sub_positions = [
         [(-6, 3), (-6, 2), (-6, 1), (-6, 0)],
         [(-2, 3), (-2, 2), (-2, 1), (-2, 0)],
@@ -147,7 +170,7 @@ def build_meta_cognitive_validation_figure():
                     mode="markers+text",
                     marker=dict(size=20, color=color, line=dict(color="white", width=2)),
                     text=[abbreviate(sub_comp)],
-                   position="middle center",
+                    textposition="middle center",
                     textfont=dict(size=11, color="black"),
                     showlegend=False,
                     hoverinfo="skip",

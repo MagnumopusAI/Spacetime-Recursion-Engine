@@ -30,17 +30,26 @@ This repository contains:
 
 ## 🧪 How to Run
 
-1. Clone the repo:
+1. Clone the repository:
+```bash
 git clone https://github.com/MagnumopusAI/Spacetime-Recursion-Engine.git
 cd Spacetime-Recursion-Engine
-
-
+```
 
 2. Install Python dependencies:
+```bash
 pip install -r Spacetime/requirements.txt
+```
 
-3. Run the engine:
-python spacetime_recursion_implementation.py
+3. Execute the engine:
+```bash
+python Spacetime/main.py
+```
+
+4. (Optional) run the unit tests:
+```bash
+pytest
+```
 
 ## 🧠 Symbolic System Goals
 
@@ -193,24 +202,40 @@ The engine generates testable predictions for:
 
 ### Architecture
 ```
-spacetime_recursion/
-├── core/
-│   ├── components.py      # SpacetimeComponent definitions
-│   ├── constraints.py     # PCE and coherence validation  
-│   ├── recursion.py       # Main ℛ algorithm
-│   └── optimization.py    # Individual component optimization
-├── analysis/
-│   ├── metrics.py         # Analysis and statistics
-│   ├── visualization.py   # Plotting and visualization
-│   └── export.py          # Data export utilities
-├── examples/
-│   ├── basic_usage.py     # Simple examples
-│   ├── advanced.py        # Complex configurations
-│   └── benchmarks.py      # Performance testing
+Spacetime/
+├── main.py                       # CLI entry point
+├── spacetime_recursion_implementation.py
+├── requirements.txt
+├── src/
+│   ├── bv_formalism.py
+│   ├── cognitive_lattice.py
+│   ├── cohomology.py
+│   ├── crosswalk.py
+│   ├── delta_spectrum.py
+│   ├── invariant_matrix.py
+│   ├── lattice.py
+│   ├── millennium/
+│   │   ├── riemann.py
+│   │   └── yang_mills.py
+│   ├── predictions.py
+│   ├── preservation.py
+│   ├── quadratic_flowchart.py
+│   ├── smug_engine.py
+│   ├── spin_algebra.py
+│   ├── spinor.py
+│   ├── torsion.py
+│   └── visualization.py
 └── tests/
-    ├── test_core.py       # Core functionality tests
-    ├── test_physics.py    # Physics validation tests
-    └── test_integration.py # Integration tests
+    ├── test_cohomology.py
+    ├── test_crosswalk.py
+    ├── test_delta_spectrum.py
+    ├── test_invariant_matrix.py
+    ├── test_lattice.py
+    ├── test_physics.py
+    ├── test_quadratic_flowchart.py
+    ├── test_resonance_page.py
+    ├── test_smug_extensions.py
+    └── test_visualization.py
 ```
 
 ## 📚 Documentation
