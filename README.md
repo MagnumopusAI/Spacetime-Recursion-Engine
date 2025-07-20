@@ -351,3 +351,13 @@ If you use this software in your research, please cite:
 
 
 
+
+### Observer-Dependent SAT Example
+
+```python
+from src.computational_extensions import resolve_p_vs_np
+
+clauses = [(1, -2, 3), (-1, 2, -3)]
+solution = resolve_p_vs_np(clauses, observer_mode="formalist")
+print(f"Satisfying assignment: {solution}")
+```
