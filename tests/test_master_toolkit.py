@@ -3,6 +3,7 @@ import math
 from pathlib import Path
 import unittest
 
+# Ensure the project root is on the path so we can import master_toolkit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "Spacetime"))
 
@@ -34,7 +35,10 @@ class TestResolvePvNP(unittest.TestCase):
         self.assertIsNotNone(result)
         for clause in clauses:
             self.assertTrue(
-                any((result[abs(l)] if l > 0 else not result[abs(l)]) for l in clause)
+                any(
+                    (result[abs(l)] if l > 0 else not result[abs(l)])
+                    for l in clause
+                )
             )
 
     def test_invalid_mode_raises(self):
@@ -72,10 +76,12 @@ class TestToolkitUtils(unittest.TestCase):
             "Invalid fluid: Viscosity must be positive."
         )
         self.assertIn(
-            "SINGULARITY", navier_stokes_stability_check(6000.0, 1.0)
+            "SINGULARITY",
+            navier_stokes_stability_check(6000.0, 1.0)
         )
         self.assertIn(
-            "SMOOTH FLOW", navier_stokes_stability_check(10.0, 5.0)
+            "SMOOTH FLOW",
+            navier_stokes_stability_check(10.0, 5.0)
         )
 
     def test_calculate_smug_mass_gap(self):
