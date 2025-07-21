@@ -104,7 +104,7 @@ def pce_equation_check(sigma: float, tau: float, tol: float = 1e-9) -> bool:
     return abs(val) <= tol
 
 
-def pce_solve_for_tau(sigma: float) -> List[float]\:
+def pce_solve_for_tau(sigma: float) -> List[float]:
     """
     Solve 2*tau^2 + 3*tau - 2*sigma^2 = 0 for tau.
     Returns both real roots.

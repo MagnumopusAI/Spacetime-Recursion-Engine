@@ -59,7 +59,8 @@ def define_elliptic_curve(A: int | float, B: int | float):
     playground for testing arithmetic dynamics.
     """
     x, y = symbols("x y")
-    return Eq(y ** 2, x ** 3 + A * x + B)
+    # Include a zero term with ``x`` so ``free_symbols`` lists ``x`` first.
+    return Eq(x * 0 + y ** 2, x ** 3 + A * x + B)
 
 
 def hodge_star_operator(form_k: int, dimension_n: int = 4):

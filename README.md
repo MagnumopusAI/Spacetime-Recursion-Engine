@@ -3,7 +3,7 @@
 🔄 Built using the Preservation Constraint Equation (PCE)  
 🔬 NASA Use Case: Universal Detection Engine  
 
-[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![License: HFL-100x](https://img.shields.io/badge/License-HFL--100x-blue.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
 [![Status: Research](https://img.shields.io/badge/Status-Research-orange.svg)]()
 ![Reality Status](https://img.shields.io/badge/Reality-Running-success)
@@ -240,6 +240,8 @@ Spacetime/
 
 ## 📚 Documentation
 
+All guides in the `docs/` directory are provided under the same [Human Futures License (HFL-100x)](LICENSE).
+
 ### Mathematical Background
 - [SMUG Framework Overview](docs/smug_framework.md)
 - [Preservation Constraint Equation](docs/pce_derivation.md)
@@ -313,14 +315,11 @@ pytest tests/
 
 ## 📄 License
 
-This work is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/).
+This project is distributed under the [Human Futures License (HFL-100x)](LICENSE).
 
-**You are free to:**
-- **Share**: Copy and redistribute the material in any medium or format
-- **Adapt**: Remix, transform, and build upon the material for any purpose
+The license allows universal use and modification while capping investor returns at 100× their contribution. Any additional proceeds must flow into a global Human Commons Fund governed on a one-human/one-share basis.
 
-**Under the following terms:**
-- **Attribution**: You must give appropriate credit, provide a link to the license, and indicate if changes were made
+See the `LICENSE` file for complete terms.
 
 ## 📖 Citation
 
@@ -332,7 +331,7 @@ If you use this software in your research, please cite:
   author={[Emergent intelligence]},
   year={2025},
   url={[https://github.com/yourusername/spacetime-recursion-engine](https://github.com/MagnumopusAI/Spacetime-Recursion-Engine)},
-  license={CC-BY-4.0}
+  license={HFL-100x}
 }
 ```
 
