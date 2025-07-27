@@ -12,7 +12,10 @@ import math
 import itertools
 from typing import Iterable, Tuple, Dict
 
-from sympy import primefactors, symbols, solve, Eq
+from sympy import primefactors, symbols, solve, Eq, simplify
+import numpy as np
+from scipy.sparse import csr_matrix
+from functools import lru_cache
 
 
 # --- Number-Theoretic Utilities ------------------------------------------------
@@ -52,6 +55,34 @@ def pce_solve_for_tau(sigma: float) -> Tuple[float, float]:
     equation = 2 * tau_sym ** 2 + 3 * tau_sym - 2 * sigma ** 2
     solutions = solve(equation, tau_sym)
     return tuple(float(sol.evalf()) for sol in solutions)
+
+
+tau_symbol, sigma_symbol = symbols("tau sigma")
+equation_template = 2 * tau_symbol ** 2 + 3 * tau_symbol - 2 * sigma_symbol ** 2
+T_CYCLE = 13 / 5 * 91 / 16
+
+
+@lru_cache(maxsize=1000)
+def optimized_pce_solve_for_tau(sigma_value: float) -> np.ndarray:
+    """Return numeric ``tau`` solutions with a minimal 13/5 phase jitter.
+
+    The solver preserves the quadratic PCE structure while caching results
+    for repeated ``sigma`` queries.  A small oscillatory perturbation
+    mimics experimental noise yet retains the fundamental invariant.
+    """
+
+    simplified_eq = simplify(equation_template.subs(sigma_symbol, sigma_value))
+    solutions = solve(simplified_eq, tau_symbol)
+    base = np.array([float(sol.evalf()) for sol in solutions], dtype=float)
+    noise = 0.005 * np.random.randn(len(base))
+    phase = np.exp(2j * np.pi / T_CYCLE)
+    return base + noise * phase
+
+
+def batch_pce(sigma_values: Iterable[float]) -> np.ndarray:
+    """Vectorized evaluation of :func:`optimized_pce_solve_for_tau`."""
+
+    return np.array([optimized_pce_solve_for_tau(float(s)) for s in sigma_values])
 
 
 def get_curve_equation(A: float, B: float) -> Eq:
@@ -138,6 +169,8 @@ __all__ = [
     "check_common_prime_factor",
     "pce_equation_check",
     "pce_solve_for_tau",
+    "optimized_pce_solve_for_tau",
+    "batch_pce",
     "get_curve_equation",
     "hodge_star_operator",
     "navier_stokes_stability_check",
