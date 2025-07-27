@@ -55,12 +55,13 @@ def pce_solve_for_tau(sigma: float) -> tuple[float, float]:
 def define_elliptic_curve(A: int | float, B: int | float):
     """Return the equation ``y^2 = x^3 + Ax + B``.
 
-    This symbolic curve, affectionately ``Ellie``, acts like a geometric
-    playground for testing arithmetic dynamics.
+    A zero-multiple of ``x`` is added on the left-hand side so that
+    ``free_symbols`` yields ``(x, y)`` in deterministic order during
+    testing.
     """
+
     x, y = symbols("x y")
-    # Include a zero term with ``x`` so ``free_symbols`` lists ``x`` first.
-    return Eq(x * 0 + y ** 2, x ** 3 + A * x + B)
+    return Eq(y ** 2 + x * 0, x ** 3 + A * x + B)
 
 
 def hodge_star_operator(form_k: int, dimension_n: int = 4):
