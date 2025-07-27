@@ -29,9 +29,15 @@ def check_common_prime_factor(A: int, B: int, C: int) -> bool:
 
 
 def pce_solve_for_tau(sigma: float) -> tuple[float, float]:
-    """Solve ``2 * tau**2 + 3 * tau - 2 * sigma**2 = 0`` for ``tau``."""
+    """Return the ``tau`` roots of the Preservation Constraint Equation.
+
+    This mirrors tuning a physical system so that its energetic balance
+    ``P(σ,τ,υ) = 0`` holds, providing two candidate equilibrium states.
+    """
+
     tau = symbols("tau")
-    solutions = solve(2 * tau**2 + 3 * tau - 2 * sigma**2, tau)
+    equation = 2 * tau**2 + 3 * tau - 2 * sigma**2
+    solutions = solve(equation, tau)
     return tuple(float(sol.evalf()) for sol in solutions)
 
 
@@ -46,10 +52,24 @@ def hodge_star_operator(k: int, n: int = 4) -> int:
     return n - k
 
 
-def navier_stokes_stability_check(velocity: float, viscosity: float) -> str:
-    """Classify flow regime based on a Reynolds proxy."""
-    reynolds_proxy = velocity / viscosity if viscosity > 0 else float("inf")
-    return "SMOOTH" if reynolds_proxy <= 5000 else "TURBULENT"
+def navier_stokes_stability_check(velocity: float, viscosity: float) -> dict:
+    """Return a regularized Reynolds number to avoid singular behavior.
+
+    Analogous to applying turbulence modeling so extreme flows remain
+    computationally tractable.
+    """
+
+    if viscosity <= 0:
+        raise ValueError("Viscosity must be positive.")
+
+    reynolds = velocity / viscosity
+    if reynolds > 5000:
+        reynolds_effective = 5000 + math.log(reynolds - 4999)
+    else:
+        reynolds_effective = reynolds
+
+    print(f"Stabilized Reynolds: {reynolds_effective:.2f}")
+    return {"Re_effective": reynolds_effective}
 
 
 def calculate_smug_mass_gap(g: float, A: float = 1.0, C: float = 1.0) -> float:
@@ -65,8 +85,11 @@ def calculate_smug_mass_gap(g: float, A: float = 1.0, C: float = 1.0) -> float:
 def resolve_p_vs_np(
     clauses: list[tuple[int, int, int]], observer_mode: str = "formalist"
 ) -> dict[int, bool] | None:
-    """Attempt to satisfy a 3-SAT instance under two observer modes.
+    """Solve a 3-SAT instance using backtracking with early pruning.
 
+    Conceptually this explores a torsion lattice to locate a stable
+    configuration satisfying the PCE-inspired constraints.
+    
     Parameters
     ----------
     clauses:
@@ -85,55 +108,46 @@ def resolve_p_vs_np(
         f"\n--- Resolving 3-SAT Problem with Observer Mode: '{observer_mode.upper()}' ---"
     )
 
+    if observer_mode not in {"formalist", "smug"}:
+        raise ValueError("Invalid observer_mode. Choose 'formalist' or 'smug'.")
+
+    if not clauses or any(len(c) == 0 or any(l == 0 for l in c) for c in clauses):
+        raise ValueError("Invalid clauses: empty clause or zero literal.")
+
     variables = sorted({abs(lit) for clause in clauses for lit in clause})
-    num_vars = len(variables)
 
-    # Formalist observer: brute force search over truth assignments
-    if observer_mode == "formalist":
-        print(
-            f"Formalist approach: Brute-forcing {2**num_vars} possible assignments for {num_vars} variables."
+    def clauses_satisfied(assign: dict[int, bool]) -> bool:
+        return all(
+            any((assign[abs(l)] if l > 0 else not assign[abs(l)]) for l in clause)
+            for clause in clauses
         )
-        assignments = itertools.product([False, True], repeat=num_vars)
-        for idx, assignment_tuple in enumerate(assignments):
-            assignment = {var: val for var, val in zip(variables, assignment_tuple)}
-            print(f"  Checking assignment {idx + 1}/{2**num_vars}...", end="\r")
+
+    def backtrack(index: int, assignment: dict[int, bool]) -> dict[int, bool] | None:
+        if index == len(variables):
+            return assignment if clauses_satisfied(assignment) else None
+
+        var = variables[index]
+        for value in (True, False):
+            assignment[var] = value
+            # prune if any clause already unsatisfied
             if all(
                 any(
-                    (assignment[abs(lit)] if lit > 0 else not assignment[abs(lit)])
-                    for lit in clause
+                    (assignment.get(abs(l), value if l > 0 else not value)
+                     if abs(l) == var else assignment.get(abs(l), None) in {True, False})
+                    if abs(l) in assignment else True
+                    for l in clause
                 )
                 for clause in clauses
             ):
-                print(f"\nSolution found! Assignment: {assignment}")
-                return assignment
-        print("\nNo solution found after exhaustive search.")
+                result = backtrack(index + 1, assignment)
+                if result:
+                    return result
+        assignment.pop(var)
         return None
 
-    # SMUG observer: conceptually instant solution via torsion geometry
-    if observer_mode == "smug":
-        print("Engaging SMUG Torsion Geometry...")
-        print("Projecting 3-SAT problem onto a physical SU(4) lattice...")
-        print("Allowing system to relax to lowest energy state...")
-        assignments = itertools.product([False, True], repeat=num_vars)
-        solution = None
-        for assignment_tuple in assignments:
-            assignment = {var: val for var, val in zip(variables, assignment_tuple)}
-            if all(
-                any(
-                    (assignment[abs(lit)] if lit > 0 else not assignment[abs(lit)])
-                    for lit in clause
-                )
-                for clause in clauses
-            ):
-                solution = assignment
-                break
-        print(
-            "...Holographic projection complete. Lowest energy state corresponds to solution."
-        )
-        if solution:
-            print(f"Solution found! Assignment: {solution}")
-            return solution
-        print("System relaxed to a state with no satisfying assignment.")
-        return None
-
-    raise ValueError("Invalid observer_mode. Choose 'formalist' or 'smug'.")
+    solution = backtrack(0, {})
+    if solution:
+        print(f"Solution found: {solution}")
+    else:
+        print("Unsatisfiable.")
+    return solution
