@@ -1,10 +1,15 @@
 import sys
 from pathlib import Path
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "Spacetime"))
 
-from src.millennium.p_vs_np import pce_solve_for_tau, resolve_p_vs_np
+from src.millennium.p_vs_np import (
+    pce_solve_for_tau,
+    resolve_p_vs_np,
+    navier_stokes_stability_check,
+)
 
 
 def test_pce_solve_for_tau_equation():
@@ -50,3 +55,13 @@ def test_resolve_p_vs_np_invalid_mode():
         pass
     else:
         assert False, "Expected ValueError for invalid observer_mode"
+
+
+def test_resolve_p_vs_np_invalid_clauses():
+    with pytest.raises(ValueError):
+        resolve_p_vs_np([(0, 1, -2)])
+
+
+def test_navier_stokes_regularization():
+    result = navier_stokes_stability_check(6000.0, 1.0)
+    assert result["Re_effective"] > 5000
