@@ -8,6 +8,7 @@ sys.path.insert(0, str(ROOT / "Spacetime"))
 
 from src.prime_gene import (
     PrimeGeneOptimizer,
+    PrimeAwareGeneOptimizer,
     integrate_ribo_data,
     prime_stall_index,
 )
@@ -33,3 +34,13 @@ def test_predict_expression():
     result = optimizer.predict_expression(seq)
     assert isinstance(result, float)
     assert result > 0
+
+
+def test_prime_aware_gene_optimizer_converges():
+    codons = [[("ATG", 0.8), ("ATA", 0.2)], [("TCT", 0.7), ("AGC", 0.3)]]
+    tAI = [[0.8, 0.2], [0.7, 0.3]]
+    ribo = [[0.1, 0.5], [0.2, 0.4]]
+    optimizer = PrimeAwareGeneOptimizer(codons, n_vars=2, tAI_weights=tAI, ribo_data=ribo)
+    sequence, optimized = optimizer.solve(t_max=0.5, tol=1e-2)
+    assert len(sequence) == 2
+    assert isinstance(optimized, bool)

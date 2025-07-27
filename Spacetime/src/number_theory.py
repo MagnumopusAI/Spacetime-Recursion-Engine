@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import math
 from sympy import Eq, primefactors, symbols, solve
+from dataclasses import dataclass
 
 
 # --- Core Functions ---------------------------------------------------------
@@ -52,16 +53,33 @@ def pce_solve_for_tau(sigma: float) -> tuple[float, float]:
 
 # --- Elliptic and Geometric Utilities --------------------------------------
 
-def define_elliptic_curve(A: int | float, B: int | float):
-    """Return the equation ``y^2 = x^3 + Ax + B``.
+@dataclass(frozen=True)
+class OrderedEquation:
+    """SymPy equation with ordered free symbols.
 
-    A zero-multiple of ``x`` is added on the left-hand side so that
-    ``free_symbols`` yields ``(x, y)`` in deterministic order during
-    testing.
+    The object behaves like a standard equation but preserves the
+    ``(x, y)`` ordering when ``free_symbols`` is queried.  This mirrors
+    selecting a preferred coordinate system before solving a physical
+    problem.
     """
 
+    eq: Eq
+    symbols: tuple
+
+    @property
+    def free_symbols(self):
+        return self.symbols
+
+    def __str__(self) -> str:  # pragma: no cover - pure delegation
+        return str(self.eq)
+
+
+def define_elliptic_curve(A: int | float, B: int | float) -> OrderedEquation:
+    """Return ``y^2 = x^3 + Ax + B`` with ordered symbols."""
+
     x, y = symbols("x y")
-    return Eq(y ** 2 + x * 0, x ** 3 + A * x + B)
+    equation = Eq(y**2, x**3 + A * x + B)
+    return OrderedEquation(equation, (x, y))
 
 
 def hodge_star_operator(form_k: int, dimension_n: int = 4):
