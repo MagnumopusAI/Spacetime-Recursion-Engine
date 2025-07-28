@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive ABC Conjecture Quality Plot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #94a3b8;
+            shape-rendering: crispEdges;
+        }
+        .axis text {
+            font-size: 12px;
+            fill: #475569;
+        }
+        .grid-line {
+            stroke: #e2e8f0;
+            stroke-opacity: 0.7;
+            shape-rendering: crispEdges;
+        }
+        .data-point {
+            transition: all 0.2s ease-in-out;
+        }
+        .data-point:hover {
+            stroke-width: 3px;
+            r: 8;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <div id="chart-container" class="bg-white rounded-2xl shadow-lg p-6 w-full max-w-4xl">
+        <h1 class="text-2xl font-bold text-center text-slate-800 mb-2">The Rarity of High-Quality ABC Triples</h1>
+        <p class="text-center text-slate-500 mb-6">A visualization of known abc-triples where the sum \(c=a+b\) is unusually large compared to the product of its prime factors. The ABC Conjecture states that for any quality greater than 1, only a finite number of such triples exist.</p>
+        <div id="visualization" class="relative"></div>
+    </div>
+
+    <div id="tooltip" class="absolute bg-slate-800 text-white rounded-lg p-3 text-sm shadow-xl opacity-0 transition-opacity duration-200 pointer-events-none" style="min-width: 250px;"></div>
+
+    <script>
+        /**
+         * Render an ABC quality scatter plot inside the given DOM element.
+         *
+         * This mirrors plotting celestial coordinates: each triple is a star
+         * whose brightness corresponds to its quality.  Hovering reveals the
+         * prime factorization behind the scene.
+         *
+         * @param {string} selector - CSS selector for the container.
+         * @param {Array<Object>} data - Parsed table of known abc-triples.
+         */
+        function generateABCQualityPlot(selector, data) {
+            const container = d3.select(selector);
+            const containerRect = container.node().getBoundingClientRect();
+
+            const margin = { top: 20, right: 30, bottom: 60, left: 60 };
+            const width = containerRect.width - margin.left - margin.right;
+            const height = 400 - margin.top - margin.bottom;
+
+            const svg = container
+                .append("svg")
+                .attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.size) + 2])
+                .range([0, width]);
+
+            const y = d3.scaleLinear()
+                .domain([1.5, d3.max(data, d => d.quality) + 0.05])
+                .range([height, 0]);
+
+            const color = d3.scaleSequential(d3.interpolateViridis)
+                .domain(d3.extent(data, d => d.quality));
+
+            svg.append("g")
+               .attr("class", "grid-line")
+               .attr("transform", `translate(0,${height})`)
+               .call(d3.axisBottom(x).tickSize(-height).tickFormat(""));
+
+            svg.append("g")
+               .attr("class", "grid-line")
+               .call(d3.axisLeft(y).tickSize(-width).tickFormat(""));
+
+            const xAxis = svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(x));
+
+            const yAxis = svg.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(y).tickFormat(d3.format(".2f")));
+
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("x", width / 2)
+                .attr("y", height + margin.bottom - 15)
+                .style("fill", "#475569")
+                .text("Size of c (Number of Digits)");
+
+            svg.append("text")
+                .attr("text-anchor", "middle")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -margin.left + 20)
+                .attr("x", -height / 2)
+                .style("fill", "#475569")
+                .text("Quality (q)");
+
+            const tooltip = d3.select("#tooltip");
+
+            function mouseover(event, d) {
+                tooltip.style("opacity", 1);
+                d3.select(event.currentTarget).style("stroke", "#0f172a");
+            }
+
+            function mousemove(event, d) {
+                const html = `
+                    <div class="font-bold text-base mb-2 border-b border-slate-600 pb-1">Rank #${d.rank} (q = ${d.quality})</div>
+                    <div class="space-y-1 text-xs">
+                        <div><span class="font-semibold text-slate-400">a =</span> ${d.a}</div>
+                        <div><span class="font-semibold text-slate-400">b =</span> ${d.b}</div>
+                        <div><span class="font-semibold text-slate-400">c =</span> ${d.c}</div>
+                    </div>
+                `;
+                tooltip.html(html)
+                    .style("left", (event.pageX + 15) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            }
+
+            function mouseout(event, d) {
+                tooltip.style("opacity", 0);
+                d3.select(event.currentTarget).style("stroke", "white");
+            }
+
+            svg.append('g')
+                .selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                    .attr("class", "data-point")
+                    .attr("cx", d => x(d.size))
+                    .attr("cy", d => y(d.quality))
+                    .attr("r", 6)
+                    .style("fill", d => color(d.quality))
+                    .style("stroke", "white")
+                    .style("stroke-width", 2)
+                    .style("cursor", "pointer")
+                    .on("mouseover", mouseover)
+                    .on("mousemove", mousemove)
+                    .on("mouseout", mouseout);
+        }
+
+        const abcData = [
+            { rank: 1, quality: 1.6299, size: 7, a: "2", b: "3^10 · 109", c: "23^5" },
+            { rank: 2, quality: 1.6260, size: 8, a: "11^2", b: "3^2 · 5^6 · 7^3", c: "2^21 · 23" },
+            { rank: 3, quality: 1.6235, size: 16, a: "19 · 1307", b: "7 · 29^2 · 31^8", c: "2^8 · 3^22 · 5^4" },
+            { rank: 4, quality: 1.5808, size: 10, a: "283", b: "5^11 · 13^2", c: "2^8 · 3^8 · 17^3" },
+            { rank: 5, quality: 1.5679, size: 4, a: "1", b: "2 · 3^7", c: "5^4 · 7" },
+            { rank: 6, quality: 1.5471, size: 5, a: "7^3", b: "3^10", c: "2^11 · 29" },
+            { rank: 7, quality: 1.5444, size: 21, a: "7^2 · 41^2 · 311^3", b: "11^16 · 13^2 · 79", c: "2 · 3^3 · 5^23 · 953" }
+        ];
+
+        generateABCQualityPlot('#visualization', abcData);
+    </script>
+</body>
+</html>
