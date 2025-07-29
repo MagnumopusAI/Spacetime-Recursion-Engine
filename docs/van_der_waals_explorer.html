@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Van der Waals Explorer</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a2e, #16213e);
+            color: #fff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Van der Waals Equation Explorer</h1>
+    <div class="controls">
+        <label>Temperature (K)
+            <input type="range" id="temp" min="200" max="400" value="300">
+        </label>
+        <label>a (L²·atm/mol²)
+            <input type="range" id="a" min="0" max="5" step="0.1" value="1">
+        </label>
+        <label>b (L/mol)
+            <input type="range" id="b" min="0" max="0.2" step="0.005" value="0.05">
+        </label>
+    </div>
+    <div id="plot" style="width:100%;height:500px;"></div>
+
+<script>
+const R = 0.082057;
+function pressure(V, T, a, b) {
+    if (V <= b) return NaN;
+    return (R * T) / (V - b) - a / (V * V);
+}
+
+function updatePlot() {
+    const T = parseFloat(document.getElementById('temp').value);
+    const a = parseFloat(document.getElementById('a').value);
+    const b = parseFloat(document.getElementById('b').value);
+    const V = [];
+    const P = [];
+    for (let v = b + 0.1; v <= 5; v += 0.05) {
+        V.push(v);
+        P.push(pressure(v, T, a, b));
+    }
+    const trace = { x: V, y: P, mode: 'lines', name: 'P(V)' };
+    Plotly.newPlot('plot', [trace], {
+        xaxis: { title: 'Volume (L)' },
+        yaxis: { title: 'Pressure (atm)' },
+        title: `T = ${T} K, a = ${a}, b = ${b}`
+    });
+}
+
+document.getElementById('temp').addEventListener('input', updatePlot);
+document.getElementById('a').addEventListener('input', updatePlot);
+document.getElementById('b').addEventListener('input', updatePlot);
+
+document.addEventListener('DOMContentLoaded', updatePlot);
+</script>
+</body>
+</html>
