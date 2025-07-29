@@ -5,3 +5,4 @@
 - [ABC Quality Plot](abc_quality_plot.html)
 - [ABC Triple Table](abc-table.md)
 - [su(4) Commutation Graph](su4_commutation_graph.md)
+- [Torsion CP Simulation](TorsionCPSimulation.jsx)
