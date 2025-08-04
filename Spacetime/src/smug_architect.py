@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 from typing import List, Tuple, Dict
 import numpy as np
+import math
 
 from .millennium.p_vs_np import resolve_p_vs_np
 
@@ -40,6 +41,43 @@ class SMUGArchitect:
         self.source = source
         self.blueprints: Dict[str, Dict[str, object]] = {}
         self.lattice: Dict[str, object] = {"type": "SU(4)", "dim": 4}
+
+    def design_custom_particle(self, name: str, mass: float, spin: float) -> Dict[str, float]:
+        """Store a particle blueprint with a coupling derived from its mass.
+
+        The coupling ``g`` is computed as ``sqrt(-1/log(mass))``, mirroring how
+        lighter particles tend to interact more strongly in certain field
+        theories.  The mass is treated as a dimensionless ratio in ``(0, 1)``,
+        analogous to specifying a fraction of a reference Planck mass.
+
+        Parameters
+        ----------
+        name:
+            Identifier for the particle blueprint.
+        mass:
+            Dimensionless mass fraction, restricted to ``0 < mass < 1``.
+        spin:
+            Intrinsic spin quantum number, representing angular momentum.
+
+        Returns
+        -------
+        Dict[str, float]
+            Stored blueprint containing ``mass``, ``spin`` and derived
+            ``coupling_g``.
+
+        Raises
+        ------
+        ValueError
+            If ``mass`` lies outside ``(0, 1)``.
+        """
+
+        if not 0 < mass < 1:
+            raise ValueError("mass must be between 0 and 1 for SMUG normalization")
+
+        coupling_g = math.sqrt(-1.0 / math.log(mass))
+        blueprint = {"type": "particle", "mass": mass, "spin": spin, "coupling_g": coupling_g}
+        self.blueprints[name] = blueprint
+        return blueprint
 
     def print_imperatives_map(self) -> None:
         """Display an imaginative map linking tools to big-picture goals."""
