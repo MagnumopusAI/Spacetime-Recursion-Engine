@@ -1,5 +1,6 @@
 import sys
 import unittest
+import math
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -48,6 +49,15 @@ class TestSMUGArchitect(unittest.TestCase):
         arch = SMUGArchitect()
         self.assertTrue(arch.verify_assignment(sat, f_res))
         self.assertTrue(arch.verify_assignment(sat, s_res))
+
+    def test_design_custom_particle(self):
+        arch = SMUGArchitect()
+        blueprint = arch.design_custom_particle("Justino", 0.2, 0.5)
+        expected_g = math.sqrt(-1.0 / math.log(0.2))
+        self.assertIn("Justino", arch.blueprints)
+        self.assertAlmostEqual(blueprint["coupling_g"], expected_g)
+        with self.assertRaises(ValueError):
+            arch.design_custom_particle("Bad", 1.2, 0.5)
 
 
 if __name__ == "__main__":
