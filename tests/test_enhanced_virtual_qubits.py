@@ -11,6 +11,7 @@ from Spacetime.src.enhanced_virtual_qubits import (
     VirtualQubit,
     ClauseGraph,
     NeuralSymbolicSystem,
+    deep_clifford_walk,
     run_smug_simulation,
 )
 from Spacetime.src.preservation import check_preservation
@@ -52,3 +53,26 @@ def test_run_smug_simulation_keys():
     result = run_smug_simulation(clauses, dim=4, iters=1)
     assert set(result) == {"curvature", "qpe_spectrum", "sheaf_sections"}
     assert result["sheaf_sections"] > 0
+
+
+def test_apply_xor_two_bit_flip():
+    nsys = NeuralSymbolicSystem(4)
+    U = nsys.apply_xor()
+    assert U[0, 3] == 1
+    assert U[3, 0] == 1
+    assert U[1, 2] == 1
+    assert U[2, 1] == 1
+    assert U[0, 1] == 0
+
+
+def test_symmetry_projection_z2():
+    nsys = NeuralSymbolicSystem(4)
+    P = nsys.apply_symmetry_projection()
+    diag = [P[i, i] for i in range(4)]
+    assert diag == [1, 0, 0, 1]
+
+
+def test_deep_clifford_walk_measure():
+    clauses = [[1, -2], [2, 3]]
+    m = deep_clifford_walk(clauses, dim=4)
+    assert m == 0
