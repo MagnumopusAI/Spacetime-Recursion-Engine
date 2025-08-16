@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT / "Spacetime"))
 from src.prime_gene import (
     PrimeGeneOptimizer,
     PrimeAwareGeneOptimizer,
+    analyze_prime_degeneracy,
     integrate_ribo_data,
     prime_stall_index,
 )
@@ -34,6 +35,13 @@ def test_predict_expression():
     result = optimizer.predict_expression(seq)
     assert isinstance(result, float)
     assert result > 0
+
+
+def test_analyze_prime_degeneracy_product_30():
+    degeneracy = analyze_prime_degeneracy()
+    entry = degeneracy[30]
+    assert entry["count"] == 6
+    assert entry["collision"] is True
 
 
 def test_prime_aware_gene_optimizer_converges():

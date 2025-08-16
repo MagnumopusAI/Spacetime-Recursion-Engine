@@ -10,6 +10,78 @@ import numpy as np
 import pandas as pd
 
 
+# Prime assignments mirror atomic numbers for bases.
+PRIME_MAP = {"A": 2, "C": 3, "G": 5, "T": 7}
+
+# Standard genetic code mapping codons to amino acids.
+GENETIC_CODE = {
+    "TTT": "F",
+    "TTC": "F",
+    "TTA": "L",
+    "TTG": "L",
+    "TCT": "S",
+    "TCC": "S",
+    "TCA": "S",
+    "TCG": "S",
+    "TAT": "Y",
+    "TAC": "Y",
+    "TAA": "Stop",
+    "TAG": "Stop",
+    "TGT": "C",
+    "TGC": "C",
+    "TGA": "Stop",
+    "TGG": "W",
+    "CTT": "L",
+    "CTC": "L",
+    "CTA": "L",
+    "CTG": "L",
+    "CCT": "P",
+    "CCC": "P",
+    "CCA": "P",
+    "CCG": "P",
+    "CAT": "H",
+    "CAC": "H",
+    "CAA": "Q",
+    "CAG": "Q",
+    "CGT": "R",
+    "CGC": "R",
+    "CGA": "R",
+    "CGG": "R",
+    "ATT": "I",
+    "ATC": "I",
+    "ATA": "I",
+    "ATG": "M",
+    "ACT": "T",
+    "ACC": "T",
+    "ACA": "T",
+    "ACG": "T",
+    "AAT": "N",
+    "AAC": "N",
+    "AAA": "K",
+    "AAG": "K",
+    "AGT": "S",
+    "AGC": "S",
+    "AGA": "R",
+    "AGG": "R",
+    "GTT": "V",
+    "GTC": "V",
+    "GTA": "V",
+    "GTG": "V",
+    "GCT": "A",
+    "GCC": "A",
+    "GCA": "A",
+    "GCG": "A",
+    "GAT": "D",
+    "GAC": "D",
+    "GAA": "E",
+    "GAG": "E",
+    "GGT": "G",
+    "GGC": "G",
+    "GGA": "G",
+    "GGG": "G",
+}
+
+
 @dataclass
 class SpeciesModel:
     """Container for species specific parameters."""
@@ -62,6 +134,37 @@ def split_into_codons(sequence: str) -> List[str]:
     return [sequence[i : i + 3] for i in range(0, len(sequence), 3)]
 
 
+def analyze_prime_degeneracy() -> Dict[int, Dict[str, object]]:
+    """Return codon groupings by prime product and amino acid.
+
+    The mapping mimics sorting molecules by mass number: codons with the
+    same prime product fall into the same "degeneracy" class.  A collision
+    occurs when a class contains codons for different amino acids,
+    analogous to distinct isotopes sharing a mass.
+
+    Returns
+    -------
+    Dict[int, Dict[str, object]]
+        Keys are prime products.  Each value contains the codons, the
+        amino acids they encode, a ``count`` of codons, and ``collision``
+        flag indicating multiple amino acids.
+    """
+
+    degeneracy: Dict[int, Dict[str, object]] = {}
+    for codon, aa in GENETIC_CODE.items():
+        product = PRIME_MAP[codon[0]] * PRIME_MAP[codon[1]] * PRIME_MAP[codon[2]]
+        entry = degeneracy.setdefault(product, {"codons": [], "amino_acids": set()})
+        entry["codons"].append(codon)
+        entry["amino_acids"].add(aa)
+
+    for product, entry in degeneracy.items():
+        entry["count"] = len(entry["codons"])
+        entry["collision"] = len(entry["amino_acids"]) > 1
+        entry["amino_acids"] = sorted(entry["amino_acids"])
+
+    return degeneracy
+
+
 def integrate_ribo_data(prime_products: pd.DataFrame, ribo_data: pd.DataFrame) -> pd.DataFrame:
     """Align prime products with ribosome density and compute stall scores."""
     merged = pd.merge(prime_products, ribo_data, left_on="codon", right_on="transcript")
@@ -89,7 +192,7 @@ class PrimeGeneOptimizer:
     """Optimise gene sequences using prime mappings and species context."""
 
     def __init__(self, species: str = "e_coli") -> None:
-        self.prime_map = {"A": 2, "C": 3, "G": 5, "T": 7}
+        self.prime_map = PRIME_MAP.copy()
         self.species_model = build_species_model(species)
 
     def predict_expression(self, sequence: str) -> float:
