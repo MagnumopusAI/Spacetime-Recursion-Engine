@@ -2,12 +2,48 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import log
-from typing import Dict, List
+from typing import Dict, List, Tuple, Union
 
 from scipy.integrate import solve_ivp
 
 import numpy as np
 import pandas as pd
+
+PRIME_MAP = {"A": 2, "C": 3, "G": 5, "T": 7}
+
+
+def encode_prime_product(codon_or_counts: Union[str, Tuple[int, int, int, int]]) -> int:
+    """Return the prime-product representation for a codon or base counts.
+
+    Multiplying prime charges for each base mirrors how conserved charges
+    add in a particle ensemble: order is irrelevant, only composition
+    matters.  Accepts either a codon string or a base-count vector.
+    """
+
+    primes = (2, 3, 5, 7)
+    if isinstance(codon_or_counts, str):
+        product = 1
+        for base in codon_or_counts:
+            product *= PRIME_MAP[base]
+        return product
+    product = 1
+    for p, n in zip(primes, codon_or_counts):
+        product *= p ** n
+    return product
+
+
+def encode_base_counts(codon: str) -> Tuple[int, int, int, int]:
+    """Return ``(n_A, n_C, n_G, n_T)`` for ``codon``.
+
+    This vector resembles counting atoms in a molecule: each entry tracks
+    how many of a particular nucleotide participate, satisfying a
+    Preservation Constraint Equation for base composition.
+    """
+
+    counts = {"A": 0, "C": 0, "G": 0, "T": 0}
+    for base in codon:
+        counts[base] += 1
+    return counts["A"], counts["C"], counts["G"], counts["T"]
 
 
 @dataclass
@@ -62,9 +98,23 @@ def split_into_codons(sequence: str) -> List[str]:
     return [sequence[i : i + 3] for i in range(0, len(sequence), 3)]
 
 
-def integrate_ribo_data(prime_products: pd.DataFrame, ribo_data: pd.DataFrame) -> pd.DataFrame:
-    """Align prime products with ribosome density and compute stall scores."""
-    merged = pd.merge(prime_products, ribo_data, left_on="codon", right_on="transcript")
+def integrate_ribo_data(
+    codon_features: pd.DataFrame, ribo_data: pd.DataFrame
+) -> pd.DataFrame:
+    """Align codon features with ribosome density and compute stall scores.
+
+    ``codon_features`` may supply either a ``prime_product`` column or a
+    ``base_counts`` column. When counts are present they are converted to
+    prime products so the resulting stall scores are comparable across
+    encodings.
+    """
+
+    if "prime_product" not in codon_features.columns:
+        codon_features = codon_features.copy()
+        codon_features["prime_product"] = codon_features["codon"].apply(
+            encode_prime_product
+        )
+    merged = pd.merge(codon_features, ribo_data, left_on="codon", right_on="transcript")
     merged["stall_score"] = np.where(
         merged["ribosome_density"] > merged["prime_product"],
         merged["ribosome_density"] / merged["prime_product"],
@@ -73,13 +123,17 @@ def integrate_ribo_data(prime_products: pd.DataFrame, ribo_data: pd.DataFrame) -
     return merged.sort_values("stall_score", ascending=False)
 
 
-def prime_stall_index(ribosome_density: float, prime_product: float) -> float:
+def prime_stall_index(
+    ribosome_density: float, encoding: Union[float, Tuple[int, int, int, int]]
+) -> float:
     """Return the Prime-Stall Index (PSI).
 
-    PSI resembles a pressure gauge.  A value between 0.8 and 1.2
-    indicates balanced traffic between ribosomes and prime codon
-    composition.
+    ``encoding`` may be a prime-product scalar or a base-count vector.
     """
+
+    prime_product = (
+        encode_prime_product(encoding) if isinstance(encoding, (tuple, list)) else encoding
+    )
     if prime_product == 0:
         return float("inf")
     return log(ribosome_density) / prime_product
@@ -89,7 +143,7 @@ class PrimeGeneOptimizer:
     """Optimise gene sequences using prime mappings and species context."""
 
     def __init__(self, species: str = "e_coli") -> None:
-        self.prime_map = {"A": 2, "C": 3, "G": 5, "T": 7}
+        self.prime_map = PRIME_MAP
         self.species_model = build_species_model(species)
 
     def predict_expression(self, sequence: str) -> float:
