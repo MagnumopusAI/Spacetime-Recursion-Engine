@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-extra latexmk
+          pip install -r Spacetime/requirements.txt
+          pip install pytest
+      - name: LaTeX build
+        run: |
+          shopt -s nullglob
+          for tex in **/*.tex; do
+            latexmk -pdf -interaction=nonstopmode -halt-on-error -Werror "$tex"
+          done
+      - name: Symbol lint
+        run: python scripts/symbol_lint.py
+      - name: Run tests
+        run: pytest
