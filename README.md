@@ -26,7 +26,14 @@ This repository contains:
 - 🚧 Full 16D spinor implementation (in progress)
 - 🚧 Complete spin(5,1) generators (15 total)
 - ✅ PCE constraint solver
+## 📅 Deliverables
 
+| Task | Output file | Target length | Owner | Due date |
+|------|-------------|---------------|-------|----------|
+| (2) Operator definition & SA proof | appA_operator.tex | ≤ 4 pp | Alice | 15 Sep |
+| (4a) Heat-kernel + Weyl | appC_heat.tex | ≤ 3 pp | Bob | 22 Sep |
+
+This grid prevents the classic "I thought you were writing that section" problem by making responsibilities explicit.
 
 ## 🧪 How to Run
 
