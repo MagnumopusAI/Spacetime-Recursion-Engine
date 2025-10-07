@@ -22,14 +22,15 @@ import math
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
+from typing import Iterable, Mapping, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy import stats
-from scipy.signal import find_peaks
+
+from diptest import diptest as hartigan_diptest
 
 EARTH_RADIUS = 6_371_000.0
 EARTH_ROTATION = 7.2921e-5
@@ -60,6 +61,10 @@ class BlockingConfig:
     strong_event_fraction: float = 0.10
     spectral_reference_wavenumbers: tuple[int, int] = (2, 4)
     bootstrap_samples: int = 500
+    diptest_replicates: int = 2000
+    block_bootstrap_block_length: int = 5
+    hysteresis_bootstrap_samples: int = 500
+    random_seed: int = 42
 
 
 def convert_geopotential_to_height(z: xr.DataArray) -> xr.DataArray:
@@ -264,6 +269,8 @@ def assess_bifurcation(
     lam: xr.DataArray,
     order_parameter: xr.DataArray,
     bins: int,
+    diptest_replicates: int = 0,
+    random_seed: int | None = None,
 ) -> dict[str, object]:
     """Diagnose bifurcation behavior through λ-binned PDFs.
 
@@ -274,9 +281,13 @@ def assess_bifurcation(
 
     lam_values = lam.values
     order_values = order_parameter.values
+    if lam_values.size == 0:
+        raise ValueError("Control parameter λ is empty; cannot assess bifurcation.")
     quantiles = np.percentile(lam_values, np.linspace(0, 100, bins + 1))
-    dip_scores: list[float] = []
+    dip_stats: list[float] = []
     dip_pvals: list[float] = []
+    rng = np.random.default_rng(random_seed)
+
     for idx in range(bins):
         if idx == bins - 1:
             mask = (lam_values >= quantiles[idx]) & (lam_values <= quantiles[idx + 1])
@@ -284,22 +295,13 @@ def assess_bifurcation(
             mask = (lam_values >= quantiles[idx]) & (lam_values < quantiles[idx + 1])
         subset = order_values[mask]
         if subset.size < 50:
-            dip_scores.append(np.nan)
-            dip_pvals.append(np.nan)
+            dip_stats.append(float("nan"))
+            dip_pvals.append(float("nan"))
             continue
-        grid = np.linspace(np.min(subset), np.max(subset), 400)
-        pdf = stats.gaussian_kde(subset)(grid)
-        peak_idx, _ = find_peaks(pdf)
-        valley_idx, _ = find_peaks(-pdf)
-        excess_kurtosis = stats.kurtosis(subset, fisher=True, bias=False)
-        separation = 0.0
-        if peak_idx.size >= 2:
-            separation = grid[peak_idx[-1]] - grid[peak_idx[0]]
-        score = max(0, peak_idx.size - 1) + max(0, valley_idx.size) + max(0.0, -excess_kurtosis)
-        if separation < 0.1 * np.std(subset):
-            score = 0.0
-        dip_scores.append(score)
-        dip_pvals.append(0.04 if score > 0.5 else 0.5)
+        dip_stat, p_value = _run_hartigan_dip_test(subset, diptest_replicates, rng)
+        dip_stats.append(dip_stat)
+        dip_pvals.append(p_value)
+
     lambda_critical = None
     for idx, pval in enumerate(dip_pvals):
         if not np.isnan(pval) and pval < 0.05:
@@ -307,7 +309,7 @@ def assess_bifurcation(
             break
     return {
         "lambda_bins": quantiles,
-        "dip_scores": dip_scores,
+        "dip_statistics": dip_stats,
         "dip_pvals": dip_pvals,
         "lambda_critical": lambda_critical,
     }
@@ -318,6 +320,9 @@ def derive_hysteresis_loop(
     order_parameter: xr.DataArray,
     events: Sequence[tuple[int, int]],
     amplitude_grid: np.ndarray,
+    block_length: int = 1,
+    bootstrap_samples: int = 0,
+    random_seed: int | None = None,
 ) -> dict[str, object]:
     """Extract onset and decay curves to estimate hysteresis.
 
@@ -329,8 +334,8 @@ def derive_hysteresis_loop(
 
     lam_values = lam.values
     order_values = order_parameter.values
-    onset_curves = []
-    decay_curves = []
+    onset_curves: list[np.ndarray] = []
+    decay_curves: list[np.ndarray] = []
 
     for start, end in events:
         event_lam = lam_values[start:end]
@@ -346,34 +351,35 @@ def derive_hysteresis_loop(
         onset_curves.append(_interpolate_curve(ascent, ascent_lam, amplitude_grid))
         decay_curves.append(_interpolate_curve(descent, descent_lam, amplitude_grid, reverse=True))
 
-    if onset_curves:
-        onset_stack = np.vstack(onset_curves)
-        valid = np.isfinite(onset_stack)
-        counts = valid.sum(axis=0)
-        sums = np.where(valid, onset_stack, 0.0).sum(axis=0)
-        onset_mean = np.divide(sums, counts, out=np.full_like(amplitude_grid, np.nan, dtype=float), where=counts > 0)
-    else:
-        onset_mean = np.full_like(amplitude_grid, np.nan)
-    if decay_curves:
-        decay_stack = np.vstack(decay_curves)
-        valid = np.isfinite(decay_stack)
-        counts = valid.sum(axis=0)
-        sums = np.where(valid, decay_stack, 0.0).sum(axis=0)
-        decay_mean = np.divide(sums, counts, out=np.full_like(amplitude_grid, np.nan, dtype=float), where=counts > 0)
-    else:
-        decay_mean = np.full_like(amplitude_grid, np.nan)
+    onset_mean = _aggregate_curve_family(onset_curves, amplitude_grid)
+    decay_mean = _aggregate_curve_family(decay_curves, amplitude_grid)
     area = np.nansum((decay_mean - onset_mean) * np.gradient(amplitude_grid))
-    differences = decay_mean - onset_mean
-    valid = differences[~np.isnan(differences)]
-    if valid.size:
-        _, p_value = stats.ttest_1samp(valid, popmean=0.0)
+
+    rng = np.random.default_rng(random_seed)
+    bootstrap = _block_bootstrap_area_samples(
+        onset_curves,
+        decay_curves,
+        amplitude_grid,
+        block_length,
+        bootstrap_samples,
+        rng,
+    )
+    if bootstrap.size:
+        lower, upper = np.quantile(bootstrap, [0.025, 0.975])
+        ci = (float(lower), float(upper))
+        extreme = np.sum(np.abs(bootstrap) >= abs(area))
+        p_value = (extreme + 1.0) / (bootstrap.size + 1.0)
     else:
-        p_value = np.nan
+        ci = (float("nan"), float("nan"))
+        p_value = float("nan")
+
     return {
         "A_grid": amplitude_grid,
         "lambda_onset": onset_mean,
         "lambda_decay": decay_mean,
         "area": area,
+        "area_ci": ci,
+        "bootstrap_distribution": bootstrap,
         "p_value": p_value,
     }
 
@@ -392,6 +398,76 @@ def _interpolate_curve(values: np.ndarray, lambdas: np.ndarray, grid: np.ndarray
     return np.interp(grid, unique_values, unique_lambdas, left=np.nan, right=np.nan)
 
 
+def _aggregate_curve_family(curves: Sequence[np.ndarray], grid: np.ndarray) -> np.ndarray:
+    """Average a family of λ(A) curves while respecting missing segments."""
+
+    if not curves:
+        return np.full_like(grid, np.nan, dtype=float)
+    stack = np.vstack(curves)
+    valid = np.isfinite(stack)
+    counts = valid.sum(axis=0)
+    sums = np.where(valid, stack, 0.0).sum(axis=0)
+    return np.divide(
+        sums,
+        counts,
+        out=np.full_like(grid, np.nan, dtype=float),
+        where=counts > 0,
+    )
+
+
+def _run_hartigan_dip_test(
+    sample: np.ndarray,
+    replicates: int,
+    rng: np.random.Generator,
+) -> tuple[float, float]:
+    """Execute the Hartigan dip test with an optional Monte Carlo refinement."""
+
+    sorted_sample = np.sort(sample.astype(float))
+    if sorted_sample.size < 3 or np.all(sorted_sample == sorted_sample[0]):
+        return float("nan"), float("nan")
+    dip_statistic, asymptotic_p = hartigan_diptest(sorted_sample)
+    if replicates <= 0:
+        return float(dip_statistic), float(asymptotic_p)
+
+    exceedances = 0
+    for _ in range(replicates):
+        simulated = np.sort(rng.uniform(sorted_sample.min(), sorted_sample.max(), size=sorted_sample.size))
+        simulated_dip, _ = hartigan_diptest(simulated)
+        if simulated_dip >= dip_statistic:
+            exceedances += 1
+    monte_carlo_p = (exceedances + 1.0) / (replicates + 1.0)
+    return float(dip_statistic), float(monte_carlo_p)
+
+
+def _block_bootstrap_area_samples(
+    onset_curves: Sequence[np.ndarray],
+    decay_curves: Sequence[np.ndarray],
+    grid: np.ndarray,
+    block_length: int,
+    samples: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """Generate bootstrap replicates of the hysteresis area using event blocks."""
+
+    event_count = min(len(onset_curves), len(decay_curves))
+    if event_count == 0 or samples <= 0:
+        return np.array([])
+    block = max(1, min(block_length, event_count))
+    indices = np.arange(event_count)
+    replicates: list[float] = []
+    for _ in range(samples):
+        draw: list[int] = []
+        while len(draw) < event_count:
+            start = int(rng.integers(0, event_count - block + 1))
+            draw.extend(indices[start : start + block])
+        draw = draw[:event_count]
+        onset_mean = _aggregate_curve_family([onset_curves[idx] for idx in draw], grid)
+        decay_mean = _aggregate_curve_family([decay_curves[idx] for idx in draw], grid)
+        area = np.nansum((decay_mean - onset_mean) * np.gradient(grid))
+        replicates.append(float(area))
+    return np.array(replicates)
+
+
 def measure_spectral_enhancement(
     anomaly: xr.DataArray,
     indicator: xr.DataArray,
@@ -399,6 +475,7 @@ def measure_spectral_enhancement(
     strong_fraction: float,
     reference_wavenumbers: tuple[int, int],
     bootstrap_samples: int,
+    random_seed: int | None = None,
 ) -> dict[str, object]:
     """Quantify the spectral boost of blocked days relative to calm days.
 
@@ -434,18 +511,26 @@ def measure_spectral_enhancement(
     ], axis=0)
 
     k_low, k_high = reference_wavenumbers
+    if k_high >= block_power.size or k_low >= block_power.size:
+        return {"significant": False, "ratio": np.nan, "confidence_interval": (np.nan, np.nan)}
     ratio_block = block_power[k_high] / (block_power[k_low] + 1e-12)
     ratio_clim = climatology_power[k_high] / (climatology_power[k_low] + 1e-12)
     ratio = ratio_block / (ratio_clim + 1e-12)
 
-    bootstraps = []
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(random_seed)
+    bootstraps: list[float] = []
     for _ in range(bootstrap_samples):
-        sampled = rng.choice(strong_days, size=len(strong_days), replace=True)
+        sampled = rng.choice(calm_indices, size=len(strong_days), replace=True)
         sample_power = np.mean([_zonal_power(anomaly.isel(time=idx)) for idx in sampled], axis=0)
         boot_ratio_block = sample_power[k_high] / (sample_power[k_low] + 1e-12)
         bootstraps.append(boot_ratio_block / (ratio_clim + 1e-12))
-    confidence = (np.percentile(bootstraps, 2.5), np.percentile(bootstraps, 97.5))
+    if bootstraps:
+        confidence = (
+            float(np.percentile(bootstraps, 2.5)),
+            float(np.percentile(bootstraps, 97.5)),
+        )
+    else:
+        confidence = (float("nan"), float("nan"))
     significant = ratio > 1.2 and confidence[0] > 1.0
     return {
         "ratio": ratio,
@@ -463,6 +548,92 @@ def _zonal_power(field: xr.DataArray) -> np.ndarray:
     demeaned = values - values.mean()
     spectrum = np.fft.fft(demeaned, axis=-1)
     return np.mean(np.abs(spectrum) ** 2, axis=-2)
+
+
+def stratify_by_season(dataset: xr.Dataset, seasons: Sequence[str]) -> dict[str, xr.Dataset]:
+    """Partition a dataset by season, mirroring solstice-to-solstice campaigns."""
+
+    if "time" not in dataset.coords:
+        raise ValueError("Dataset lacks a time coordinate for seasonal stratification.")
+    selections: dict[str, xr.Dataset] = {}
+    season_labels = dataset["time"].dt.season
+    for season in seasons:
+        mask = season_labels == season
+        subset = dataset.sel(time=dataset.time[mask])
+        if subset.time.size:
+            selections[season] = subset
+    return selections
+
+
+def extract_longitude_sector(dataset: xr.Dataset, lon_bounds: tuple[float, float]) -> xr.Dataset:
+    """Slice a dataset to a longitude sector, like focusing a telescope on a nebula."""
+
+    if "lon" not in dataset.coords:
+        raise ValueError("Dataset lacks longitude coordinates for sector extraction.")
+    lon_values = dataset["lon"].values
+    lon_norm = (lon_values + 360.0) % 360.0
+    start = (lon_bounds[0] + 360.0) % 360.0
+    end = (lon_bounds[1] + 360.0) % 360.0
+    if start <= end:
+        mask = (lon_norm >= start) & (lon_norm <= end)
+    else:
+        mask = (lon_norm >= start) | (lon_norm <= end)
+    selected = dataset.isel(lon=np.where(mask)[0])
+    return selected
+
+
+def compute_blocking_frequency(indicator: xr.DataArray) -> xr.DataArray:
+    """Convert a blocking indicator mask into a frequency map."""
+
+    if "time" not in indicator.dims:
+        raise ValueError("Indicator must include time to compute frequency.")
+    return indicator.astype(float).mean(dim="time")
+
+
+def evaluate_against_reference_climatology(
+    model_frequency: xr.DataArray,
+    reference_frequency: xr.DataArray,
+) -> dict[str, float]:
+    """Compare blocking frequencies against a reference climatology."""
+
+    aligned = xr.align(model_frequency, reference_frequency, join="inner")
+    if not aligned:
+        raise ValueError("Unable to align frequency maps for comparison.")
+    model_aligned, reference_aligned = aligned
+    diff = model_aligned - reference_aligned
+    bias = float(diff.mean().item())
+    rmse = float(np.sqrt((diff**2).mean().item()))
+    correlation = float(xr.corr(model_aligned, reference_aligned).item())
+    return {"bias": bias, "rmse": rmse, "correlation": correlation}
+
+
+def run_stratified_blocking_pipeline(
+    dataset: xr.Dataset,
+    output_directory: str | os.PathLike[str],
+    seasons: Sequence[str],
+    regions: Mapping[str, tuple[float, float]],
+    config: BlockingConfig | None = None,
+) -> dict[str, dict[str, dict[str, object]]]:
+    """Execute the blocking pipeline across seasonal and regional strata."""
+
+    cfg = config or BlockingConfig()
+    results: dict[str, dict[str, dict[str, object]]] = {}
+    for season, seasonal_ds in stratify_by_season(dataset, seasons).items():
+        season_dir = Path(output_directory) / season.lower()
+        region_reports: dict[str, dict[str, object]] = {}
+        for region_name, bounds in regions.items():
+            sector = extract_longitude_sector(seasonal_ds, bounds)
+            if sector.time.size == 0 or sector.lon.size == 0:
+                continue
+            report = execute_blocking_pipeline(
+                sector,
+                season_dir / region_name.lower(),
+                config=cfg,
+            )
+            region_reports[region_name] = report
+        if region_reports:
+            results[season] = region_reports
+    return results
 
 
 def execute_blocking_pipeline(
@@ -495,12 +666,21 @@ def execute_blocking_pipeline(
     )
     lam = evaluate_control_parameter(ds["u"], cfg.latitude_band)
     order_parameter = evaluate_order_parameter(z500, qgpv_anomaly)
-    bifurcation = assess_bifurcation(lam, order_parameter, cfg.lambda_bins)
+    bifurcation = assess_bifurcation(
+        lam,
+        order_parameter,
+        cfg.lambda_bins,
+        cfg.diptest_replicates,
+        cfg.random_seed,
+    )
     hysteresis = derive_hysteresis_loop(
         lam,
         order_parameter,
         events,
         cfg.hysteresis_amplitude_grid,
+        cfg.block_bootstrap_block_length,
+        cfg.hysteresis_bootstrap_samples,
+        cfg.random_seed,
     )
     anomaly = z500.groupby("time.dayofyear") - z500.groupby("time.dayofyear").mean("time")
     spectral = measure_spectral_enhancement(
@@ -510,6 +690,7 @@ def execute_blocking_pipeline(
         cfg.strong_event_fraction,
         cfg.spectral_reference_wavenumbers,
         cfg.bootstrap_samples,
+        cfg.random_seed,
     )
 
     summary = {
@@ -600,6 +781,11 @@ __all__ = [
     "assess_bifurcation",
     "derive_hysteresis_loop",
     "measure_spectral_enhancement",
+    "stratify_by_season",
+    "extract_longitude_sector",
+    "compute_blocking_frequency",
+    "evaluate_against_reference_climatology",
+    "run_stratified_blocking_pipeline",
     "execute_blocking_pipeline",
     "construct_reference_blocking_manifold",
     "integrate_reference_blocking_cycle",
@@ -707,10 +893,15 @@ def _summarise_results(summary: dict[str, object]) -> dict[str, object]:
 
     if "lambda_critical" in bifurcation:
         printable["lambda_critical"] = (None if bifurcation["lambda_critical"] is None else float(bifurcation["lambda_critical"]))
+    if "dip_statistics" in bifurcation:
+        printable["dip_statistics"] = [float(x) if not math.isnan(x) else float("nan") for x in bifurcation["dip_statistics"]]
     if "area" in hysteresis:
         printable["hysteresis_area"] = float(hysteresis["area"])
     if "p_value" in hysteresis and not math.isnan(hysteresis["p_value"]):
         printable["hysteresis_p_value"] = float(hysteresis["p_value"])
+    if "area_ci" in hysteresis:
+        ci = hysteresis["area_ci"]
+        printable["hysteresis_area_ci"] = (float(ci[0]), float(ci[1]))
     if "ratio" in spectral and not math.isnan(spectral["ratio"]):
         printable["spectral_ratio"] = float(spectral["ratio"])
     if "confidence_interval" in spectral:
