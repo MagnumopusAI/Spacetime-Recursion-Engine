@@ -1,7 +1,12 @@
 import numpy as np
-import torch
+import pytest
 import sys
 from pathlib import Path
+
+try:  # pragma: no cover - skip if torch unavailable
+    import torch
+except ModuleNotFoundError:  # pragma: no cover
+    pytest.skip("torch is not installed", allow_module_level=True)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "Spacetime"))
