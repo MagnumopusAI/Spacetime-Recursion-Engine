@@ -1,0 +1,16 @@
+{
+  "title": "Clay-PCE Yang-Mills Lattice Correlators",
+  "description": "Snapshot of torsion-enforced lattice solver and correlator data for the \u03bb=4 mass-gap analysis.",
+  "creators": [
+    {"name": "Clay-PCE Collaboration", "affiliation": "Independent"}
+  ],
+  "doi": "10.5281/zenodo.0000000",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/clay-pce/clay-pce-lattice",
+      "relation": "isIdenticalTo"
+    }
+  ],
+  "keywords": ["Yang-Mills", "mass gap", "PCE", "lattice"],
+  "version": "1.0.0"
+}
