@@ -17,6 +17,7 @@ physical invariants encoded by the PCE framework.
 
 from __future__ import annotations
 
+import argparse
 import math
 import os
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from typing import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import xarray as xr
 from scipy import stats
 from scipy.signal import find_peaks
@@ -599,5 +601,130 @@ __all__ = [
     "derive_hysteresis_loop",
     "measure_spectral_enhancement",
     "execute_blocking_pipeline",
+    "construct_reference_blocking_manifold",
+    "integrate_reference_blocking_cycle",
 ]
+
+
+def construct_reference_blocking_manifold() -> xr.Dataset:
+    """Build a synthetic ERA5-like dataset honoring the Preservation Constraint Equation.
+
+    The construction mirrors a controlled wind-tunnel experiment: we sculpt a
+    mid-latitude ridge that persists for five days so that every subsequent
+    diagnostic—blocking detection, hysteresis, and spectra—can trace the same
+    invariant structure without interference from unrelated disturbances.
+    """
+
+    times = pd.to_datetime(
+        [
+            "2000-01-01",
+            "2000-01-04",
+            "2000-01-07",
+            "2000-01-10",
+            "2001-01-01",
+            "2001-01-04",
+            "2001-01-07",
+            "2001-01-10",
+        ]
+    )
+    latitudes = xr.DataArray(np.array([70.0, 55.0, 40.0]), dims="lat", name="lat")
+    longitudes = xr.DataArray(np.linspace(0.0, 330.0, 12), dims="lon", name="lon")
+
+    baseline = 5_600.0
+    z_vals = np.full((times.size, latitudes.size, longitudes.size), baseline)
+
+    block_slice = slice(2, 7)
+    ridge_profile = 250.0 * np.cos(np.deg2rad(longitudes.values))
+    z_vals[block_slice, 1, :] += 350.0 + ridge_profile
+    z_vals[block_slice, 0, :] -= 200.0
+    z_vals[block_slice, 2, :] -= 150.0
+
+    geopotential = xr.DataArray(
+        z_vals * GRAVITY_STANDARD,
+        coords={"time": times, "lat": latitudes, "lon": longitudes},
+        dims=("time", "lat", "lon"),
+        name="z",
+        attrs={"units": "m^2 s^-2"},
+    )
+
+    u_field = xr.DataArray(
+        np.full_like(z_vals, 25.0),
+        coords=geopotential.coords,
+        dims=geopotential.dims,
+        name="u",
+        attrs={"units": "m s^-1"},
+    )
+
+    return xr.Dataset({"z": geopotential, "u": u_field})
+
+
+def integrate_reference_blocking_cycle(
+    output_directory: str | os.PathLike[str],
+    config: BlockingConfig | None = None,
+    dataset: xr.Dataset | None = None,
+) -> dict[str, object]:
+    """Run the full pipeline on the synthetic manifold to produce a reference report.
+
+    Think of this routine as replaying a carefully choreographed dance: the
+    synthetic dataset provides the steps, while the pipeline instruments keep
+    the rhythm so that bifurcation, hysteresis, and spectra remain phase-locked
+    with the Preservation Constraint Equation.
+    """
+
+    ds = dataset or construct_reference_blocking_manifold()
+    cfg = config or BlockingConfig(bootstrap_samples=50)
+    return execute_blocking_pipeline(ds, output_directory, config=cfg)
+
+
+def _build_cli_parser() -> argparse.ArgumentParser:
+    """Create a command-line interface mirroring a mission checklist."""
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run the ERA5 blocking pipeline on a synthetic reference manifold "
+            "that satisfies the Preservation Constraint Equation."
+        )
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="blocking_outputs",
+        help=(
+            "Directory where summary figures and diagnostics will be stored. "
+            "The default mirrors the flight data recorder archive."
+        ),
+    )
+    return parser
+
+
+def _summarise_results(summary: dict[str, object]) -> dict[str, object]:
+    """Convert pipeline diagnostics into JSON-friendly scalars for reporting."""
+
+    printable: dict[str, object] = {"events": summary.get("events", [])}
+    bifurcation = summary.get("bifurcation", {})
+    hysteresis = summary.get("hysteresis", {})
+    spectral = summary.get("spectral", {})
+
+    if "lambda_critical" in bifurcation:
+        printable["lambda_critical"] = (None if bifurcation["lambda_critical"] is None else float(bifurcation["lambda_critical"]))
+    if "area" in hysteresis:
+        printable["hysteresis_area"] = float(hysteresis["area"])
+    if "p_value" in hysteresis and not math.isnan(hysteresis["p_value"]):
+        printable["hysteresis_p_value"] = float(hysteresis["p_value"])
+    if "ratio" in spectral and not math.isnan(spectral["ratio"]):
+        printable["spectral_ratio"] = float(spectral["ratio"])
+    if "confidence_interval" in spectral:
+        ci = spectral["confidence_interval"]
+        printable["spectral_confidence_interval"] = (float(ci[0]), float(ci[1]))
+    return printable
+
+
+if __name__ == "__main__":
+    parser = _build_cli_parser()
+    args = parser.parse_args()
+    report = integrate_reference_blocking_cycle(args.output)
+    streamlined = _summarise_results(report)
+    print("Blocking diagnostics:")
+    for key, value in streamlined.items():
+        print(f"  {key}: {value}")
 

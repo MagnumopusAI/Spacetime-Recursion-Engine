@@ -22,6 +22,9 @@ from src.era5_blocking_pipeline import (  # noqa: E402
     filter_blocking_events,
     measure_spectral_enhancement,
     tibaldi_molteni_indicator,
+    construct_reference_blocking_manifold,
+    integrate_reference_blocking_cycle,
+    _summarise_results,
 )
 
 
@@ -204,3 +207,37 @@ def test_execute_blocking_pipeline_minimal_dataset(tmp_path):
     config = BlockingConfig(min_duration_days=2, min_zonal_extent_deg=10.0, bootstrap_samples=5)
     summary = execute_blocking_pipeline(dataset, tmp_path, config=config)
     assert set(summary.keys()) == {"bifurcation", "hysteresis", "spectral", "events"}
+
+
+def test_construct_reference_blocking_manifold_structure():
+    dataset = construct_reference_blocking_manifold()
+    assert dataset.sizes["time"] == 8
+    assert dataset["z"].attrs["units"] == "m^2 s^-2"
+    ridge_mean = float(dataset["z"].isel(time=slice(2, 7), lat=1).mean())
+    flank_mean = float(dataset["z"].isel(time=slice(2, 7), lat=0).mean())
+    assert ridge_mean > flank_mean
+
+
+def test_integrate_reference_blocking_cycle(tmp_path):
+    summary = integrate_reference_blocking_cycle(tmp_path)
+    assert summary["events"]
+    durations = [end - start for start, end in summary["events"]]
+    assert max(durations) >= 5
+    assert (tmp_path / "bifurcation_histograms.png").exists()
+
+
+def test_summarise_results_converts_numpy_scalars():
+    summary = {
+        "events": [(1, 4)],
+        "bifurcation": {"lambda_critical": np.float64(0.5)},
+        "hysteresis": {"area": np.float64(1.25), "p_value": np.float64(0.03)},
+        "spectral": {
+            "ratio": np.float64(1.4),
+            "confidence_interval": (np.float64(1.1), np.float64(1.6)),
+        },
+    }
+    printable = _summarise_results(summary)
+    assert printable["lambda_critical"] == 0.5
+    assert printable["hysteresis_area"] == 1.25
+    assert printable["spectral_ratio"] == 1.4
+    assert printable["spectral_confidence_interval"] == (1.1, 1.6)
