@@ -7,3 +7,4 @@
 - [su(4) Commutation Graph](su4_commutation_graph.md)
 - [Torsion CP Simulation](TorsionCPSimulation.jsx)
 - [Universal Mathematical Grammar Validation](universal_mathematical_grammar_validation.md)
+- [Cognitive Preservation Quadratic](cognitive_preservation_quadratic.md)
