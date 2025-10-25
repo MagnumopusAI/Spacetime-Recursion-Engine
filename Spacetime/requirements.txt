@@ -9,3 +9,4 @@ qiskit>=0.45.0    # Quantum circuit simulation
 xarray>=2023.1.0  # Labeled array manipulations for atmospheric analysis
 cdsapi>=0.7.0     # Copernicus Data Store access aligned with CDS-Beta
 diptest>=0.5.0    # Hartigan dip test implementation for bifurcation analysis
+torch>=2.1.0      # Neural recursion backbone for self-modifying models
