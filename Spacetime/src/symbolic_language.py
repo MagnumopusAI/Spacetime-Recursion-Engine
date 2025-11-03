@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Dict
+from typing import Dict, List, Optional
 
 from .gate_core import SymbolicInput
 
@@ -49,23 +49,30 @@ class PreservationDirective:
 def _split_arguments(body: str) -> Dict[str, str]:
     """Return a mapping extracted from the comma-separated argument payload.
 
-    The splitting routine is intentionally strict so that every command resembles
-    a carefully balanced chemical equation. Each term must contain a key-value
-    pair separated by ``=`` and we forbid duplicate keys to prevent silent drift
-    in the preservation ledger.
+    The parser behaves like a spectrometer aligning multiple diffraction gratings:
+    it tracks nested parentheses, brackets, and quoted strings so that commas
+    buried inside function calls or matrices do not trigger premature splits.
+    This keeps rich symbolic expressions intact while still enforcing the strict
+    bookkeeping required by the preservation directive.
     """
 
     if not body.strip():
         raise DirectiveSyntaxError("Preservation directive requires assignments inside parentheses.")
 
+    openings = {'(': ')', '[': ']', '{': '}'}
+    stack: List[str] = []
     entries: Dict[str, str] = {}
-    for segment in body.split(','):
-        key_value = segment.strip()
-        if not key_value:
-            continue
-        if '=' not in key_value:
-            raise DirectiveSyntaxError(f"Missing '=' in segment: {key_value!r}")
-        key, value = key_value.split('=', maxsplit=1)
+    buffer: List[str] = []
+    quote: Optional[str] = None
+
+    def flush_segment() -> None:
+        segment = ''.join(buffer).strip()
+        buffer.clear()
+        if not segment:
+            return
+        if '=' not in segment:
+            raise DirectiveSyntaxError(f"Missing '=' in segment: {segment!r}")
+        key, value = segment.split('=', maxsplit=1)
         key = key.strip()
         value = value.strip()
         if not key:
@@ -75,6 +82,41 @@ def _split_arguments(body: str) -> Dict[str, str]:
         if key in entries:
             raise DirectiveSyntaxError(f"Duplicate assignment for parameter {key!r}.")
         entries[key] = value
+
+    for char in body:
+        if quote:
+            buffer.append(char)
+            if char == quote and (len(buffer) < 2 or buffer[-2] != '\\'):
+                quote = None
+            continue
+
+        if char in {'"', "'"}:
+            quote = char
+            buffer.append(char)
+            continue
+
+        if char in openings:
+            stack.append(openings[char])
+            buffer.append(char)
+            continue
+
+        if stack and char == stack[-1]:
+            stack.pop()
+            buffer.append(char)
+            continue
+
+        if char == ',' and not stack:
+            flush_segment()
+            continue
+
+        buffer.append(char)
+
+    if quote:
+        raise DirectiveSyntaxError("Unterminated string literal in directive body.")
+    if stack:
+        raise DirectiveSyntaxError("Unbalanced delimiters detected in directive body.")
+
+    flush_segment()
     return entries
 
 
