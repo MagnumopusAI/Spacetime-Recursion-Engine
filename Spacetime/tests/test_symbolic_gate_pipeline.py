@@ -98,3 +98,17 @@ def test_orchestrator_process_directive_pathway():
     result = orchestrator.process_directive("preserve(M=-13, alpha=2, beta=1, chi=51/2)", ranks=[1, 2])
     assert result.accepted
     assert result.projection is not None
+
+
+def test_parse_preservation_directive_handles_nested_commas():
+    command = "preserve(M=-13, alpha=2, beta=Matrix(1, 2, 3), chi=cos(theta + phi))"
+    directive = parse_preservation_directive(command)
+    assignments = directive.to_assignments()
+    assert assignments["beta"] == "Matrix(1, 2, 3)"
+    assert assignments["chi"] == "cos(theta + phi)"
+
+
+def test_parse_preservation_directive_handles_string_literals():
+    command = "preserve(M=-13, alpha=2, beta='1,2', chi=51/2)"
+    directive = parse_preservation_directive(command)
+    assert directive.to_assignments()["beta"] == "'1,2'"
