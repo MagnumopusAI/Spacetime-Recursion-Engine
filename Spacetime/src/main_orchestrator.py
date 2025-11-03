@@ -10,6 +10,7 @@ from .gate_core import SymbolicInput, build_constraint
 from .lambda_filter import LambdaProjectionResult, project_to_lambda_four
 from .memory_topology import RankDiagnostic, evaluate_cohomological_rank
 from .qec_syndrome import SyndromeReport, detect_topological_violation
+from .symbolic_language import PreservationDirective, parse_preservation_directive
 
 
 @dataclass(frozen=True)
@@ -65,3 +66,19 @@ class SymbolicGateOrchestrator:
             syndrome=syndrome,
             projection_diagnostics=projection_result,
         )
+
+    def process_directive(self, directive: Union[str, PreservationDirective], ranks: Iterable[int]) -> SymbolicProcessingResult:
+        """Parse and process a symbolic preservation directive.
+
+        This helper lets higher-level agents submit human-readable commands
+        without worrying about the internal wiring. It mirrors how an observatory
+        accepts celestial coordinates in the sky and translates them into
+        mount-specific motor settings that keep the telescope aligned with the
+        target invariant.
+        """
+
+        if isinstance(directive, str):
+            parsed = parse_preservation_directive(directive)
+        else:
+            parsed = directive
+        return self.process(parsed.to_assignments(), ranks)

@@ -11,6 +11,7 @@ from src.lambda_filter import construct_constraint_matrix, project_to_lambda_fou
 from src.main_orchestrator import SymbolicGateOrchestrator
 from src.memory_topology import evaluate_cohomological_rank
 from src.qec_syndrome import detect_topological_violation
+from src.symbolic_language import DirectiveSyntaxError, parse_preservation_directive
 
 
 VALID_ASSIGNMENTS = {
@@ -75,3 +76,25 @@ def test_orchestrator_rejects_when_rank_too_small():
     result = orchestrator.process(VALID_ASSIGNMENTS, ranks=[1, 1])
     assert not result.accepted
     assert not result.rank_diagnostic.meets_threshold
+
+
+def test_parse_preservation_directive_extracts_assignments():
+    command = "preserve(M=-13, alpha=2, beta=1, chi=51/2)"
+    directive = parse_preservation_directive(command)
+    assert directive.to_assignments() == VALID_ASSIGNMENTS
+
+
+def test_parse_preservation_directive_missing_parameter():
+    command = "preserve(M=-13, alpha=2, beta=1)"
+    try:
+        parse_preservation_directive(command)
+        assert False, "DirectiveSyntaxError should have been raised"
+    except DirectiveSyntaxError as exc:
+        assert "missing" in str(exc).lower()
+
+
+def test_orchestrator_process_directive_pathway():
+    orchestrator = SymbolicGateOrchestrator(rank_threshold=3)
+    result = orchestrator.process_directive("preserve(M=-13, alpha=2, beta=1, chi=51/2)", ranks=[1, 2])
+    assert result.accepted
+    assert result.projection is not None
