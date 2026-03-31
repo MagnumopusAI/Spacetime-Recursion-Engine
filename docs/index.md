@@ -9,3 +9,4 @@
 - [Universal Mathematical Grammar Validation](universal_mathematical_grammar_validation.md)
 - [Cognitive Preservation Quadratic](cognitive_preservation_quadratic.md)
 - [Formal Cognates & Domain Eigenforms](formal_cognates_domain_eigenforms.md)
+- [Correlated Optima Framework](correlated_optima_framework.md)
