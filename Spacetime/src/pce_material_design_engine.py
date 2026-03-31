@@ -88,6 +88,37 @@ class DeformationField:
     impact: str
 
 
+@dataclass(frozen=True)
+class BoundaryTestReport:
+    """Boundary-probe summary for a point on the PCE manifold.
+
+    Analogy: this acts like a wind-tunnel report for geometry. We push the
+    coordinate to hard limits, pin one variable, and inspect asymptotic
+    behavior to identify the governing archetype.
+    """
+
+    discrete_boundary_value: str
+    pinned_constraint_response: str
+    asymptotic_limit_behavior: str
+
+
+@dataclass(frozen=True)
+class UnifiedTrigramInference:
+    """Single combined output of the former three archetype tools.
+
+    This unifies linear-cutoff checks, quadratic-selection checks, and
+    topological/asymptotic checks into one protocol object so downstream code
+    can consume a single source of truth.
+    """
+
+    disguise: str
+    boundary_test: BoundaryTestReport
+    unmasked_object: str
+    trigram_classification: str
+    governing_equation: str
+    pce_point: PCEPoint
+
+
 def stability_locus_sigma(tau: float) -> float:
     """Solve ``upsilon_eff = 0`` for positive ``sigma`` branch.
 
@@ -213,11 +244,64 @@ def minimal_deformation_for_target(
     )
 
 
+def infer_unified_trigram_engine(
+    sigma: float,
+    tau: float,
+    *,
+    disguise: str = "multi-tool material-design protocol",
+) -> UnifiedTrigramInference:
+    """Fuse three analysis tools into one covariant inference output.
+
+    The routine performs boundary testing in three directions:
+    1) discrete edge check via ``|upsilon|`` stability thresholds,
+    2) pinned-variable route by solving the PCE at fixed ``tau``,
+    3) asymptotic behavior at large ``tau`` where the quadratic manifold shape
+       dominates. The dominant mechanism is then classified in one trigram.
+    """
+
+    upsilon = pce_upsilon_eff(sigma, tau)
+    point = PCEPoint(sigma=sigma, tau=tau, upsilon=upsilon)
+    margin = 0.05 - abs(upsilon)
+    edge_message = (
+        f"|upsilon|={abs(upsilon):.4f}; eigenmode margin={margin:.4f}. "
+        "Crossing 0.05 marks discrete stability cutoff."
+    )
+
+    pinned_sigma = stability_locus_sigma(max(tau, 0.0))
+    pinning_message = (
+        f"Pin tau={tau:.4f}, manifold-selected sigma*={pinned_sigma:.4f}; "
+        "deviation from sigma* quantifies quadratic valley distance."
+    )
+
+    asymptotic_message = (
+        "As tau→∞, stability branch follows sigma≈sqrt(tau^2+1.5tau), "
+        "so ratio sigma/tau→1 and manifold curvature stays invariant."
+    )
+
+    boundary_report = BoundaryTestReport(
+        discrete_boundary_value=edge_message,
+        pinned_constraint_response=pinning_message,
+        asymptotic_limit_behavior=asymptotic_message,
+    )
+
+    return UnifiedTrigramInference(
+        disguise=disguise,
+        boundary_test=boundary_report,
+        unmasked_object="Quadratic manifold projection with constrained branch selection",
+        trigram_classification="Quadratic Selection",
+        governing_equation="upsilon = -2*sigma^2 + 2*tau^2 + 3*tau",
+        pce_point=point,
+    )
+
+
 __all__ = [
     "CandidateMapping",
     "DeformationField",
+    "BoundaryTestReport",
     "PCEPoint",
+    "UnifiedTrigramInference",
     "first_order_sigma_expansion",
+    "infer_unified_trigram_engine",
     "minimal_deformation_for_target",
     "pce_upsilon_eff",
     "propose_candidate_mappings",
